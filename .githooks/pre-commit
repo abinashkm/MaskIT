@@ -1,0 +1,18 @@
+#!/bin/sh
+# Blocks commits that change project files without updating docs/CHANGELOG.md.
+# Bypass only for trivial cases (typos, formatting): git commit --no-verify
+
+staged=$(git diff --cached --name-only)
+[ -z "$staged" ] && exit 0
+
+# Anything that is not documentation or repo meta counts as a code change.
+code=$(echo "$staged" | grep -Ev '^(docs/|CLAUDE\.md$|\.githooks/|\.github/|.*\.md$)')
+
+if [ -n "$code" ] && ! echo "$staged" | grep -q '^docs/CHANGELOG\.md$'; then
+  echo "Commit blocked: code changed but docs/CHANGELOG.md was not updated."
+  echo "Add an entry (what / where / how it works / why / tests)."
+  echo "Also update DECISIONS, ARCHITECTURE, USER_GUIDE, MAINTENANCE, INTERVIEW_GUIDE if relevant."
+  echo "Changed files:"; echo "$code" | sed 's/^/  - /'
+  exit 1
+fi
+exit 0
