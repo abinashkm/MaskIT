@@ -22,7 +22,7 @@ Rule: **front-ends never contain detection logic.** Anything about finding or ma
 ```
 packages/core/       detection + masking engine (implemented)
 packages/extension/  Manifest V3 extension (content script, service worker, popup)
-packages/web/        static web app (React + Vite)
+packages/web/        static web app (React + Vite) (implemented)
 packages/cli/        batch CLI (later)
 docs/                all documentation
 ```
@@ -75,6 +75,9 @@ When two findings overlap, the higher-priority entity type wins, then the higher
 
 ### 3.5 Masking styles
 Token (default), full redaction, generalization (date to year), synthetic replacement.
+
+## 3b. Web app (implemented, `packages/web`)
+A static React + Vite page. It imports `@maskit/core` and holds one `MaskSession` in React state. Flow: text, level, style and custom words go into `analyze()`; the user unticks findings in the review list; `applyMask()` produces the output; `restoreText()` handles AI replies. Production builds carry a CSP with `connect-src 'none'`.
 
 ## 4. Chrome extension (planned)
 - **Content script:** attached to supported AI sites through per-site adapters. Intercepts paste and send, calls the engine, shows the review overlay.

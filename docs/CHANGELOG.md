@@ -15,6 +15,19 @@ Every change is recorded here: **what** changed, **where** it lives, and **how i
 
 ---
 
+### 2026-10-18: Web demo app (completes Phase 1 MVP)
+- **What:** A static React page where you paste text, pick a level and style, review each finding, copy the masked text, and restore an AI reply locally.
+- **Where:** `packages/web/` (`index.html`, `vite.config.ts`, `src/App.tsx`, `src/main.tsx`, `src/styles.css`).
+- **How it works:**
+  1. `App.tsx` calls `analyze()` from `@maskit/core` on every edit (level, text, custom words).
+  2. Each finding is a checkbox; unticked findings are kept out of the masked output. `applyMask()` masks only the approved ones.
+  3. A single `MaskSession` lives in React state (memory only). "Restore" runs `restoreText()` on a pasted reply; "Clear mapping" wipes the session.
+  4. Vite aliases `@maskit/core` to the core source, so `pnpm --filter @maskit/web dev` needs no prior core build.
+  5. A Content-Security-Policy (`connect-src 'none'`, no remote scripts) is injected into the production `index.html` at build time only, so the built page cannot make network requests. It is not injected in dev because Vite's dev helpers need inline scripts.
+- **Why:** A demoable, installation-free surface for the engine and the privacy claim (D-001, D-013).
+- **Tests:** Engine logic is covered by the 51 core tests. The UI has no automated tests yet **(planned: Playwright E2E)**; it was verified to typecheck, lint and build, but not yet checked by hand in a browser.
+- **Docs updated:** CHANGELOG, PLAN, ARCHITECTURE, MAINTENANCE, USER_GUIDE, DECISIONS (D-013), docs/README.
+
 ### 2026-10-18: Core masking engine (Phase 0 scaffold + Phase 1 engine)
 - **What:** Monorepo scaffold and the first working `@maskit/core` engine: 19 recognizers, four masking levels, overlap resolution, reversible token masking with restore, and custom deny-list terms.
 - **Where:**

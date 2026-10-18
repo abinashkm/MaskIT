@@ -1,0 +1,141 @@
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #5f6368;
+  --border: #d0d5dd;
+  --accent: #1a56db;
+  --tag: #e8f0fe;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a;
+    --fg: #eceff4;
+    --muted: #9aa4b2;
+    --border: #333a45;
+    --accent: #6ea0ff;
+    --tag: #1f2b45;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font:
+    16px/1.5 system-ui,
+    sans-serif;
+}
+main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+h1 {
+  margin: 0;
+}
+h2 {
+  font-size: 1.05rem;
+  margin: 20px 0 8px;
+}
+.muted,
+small {
+  color: var(--muted);
+}
+.controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 600;
+}
+select,
+input:not([type="checkbox"]),
+textarea,
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+}
+textarea {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 14px;
+  resize: vertical;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+.findings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 330px;
+  overflow: auto;
+}
+.findings label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  padding: 3px 0;
+}
+.tag {
+  background: var(--tag);
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.masked {
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+}
+button {
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  padding: 8px 16px;
+  font-weight: 600;
+}
+button.secondary {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+.row {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+footer {
+  margin-top: 32px;
+  font-size: 14px;
+  color: var(--muted);
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

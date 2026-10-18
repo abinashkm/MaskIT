@@ -1,6 +1,6 @@
 # User Guide
 
-> Status: describes the **intended** product. Not available yet; this guide will be updated as features ship.
+> Status: the **web app** works today (run it locally, see MAINTENANCE.md). The Chrome extension and file upload are **(planned)**; sections about them describe the intended behavior.
 
 ## What MaskIT does
 MaskIT finds sensitive information in your text or files and replaces it with safe placeholders **before** you paste it into an AI tool. Everything happens on your device. Nothing is uploaded.
@@ -9,7 +9,13 @@ MaskIT finds sensitive information in your text or files and replaces it with sa
 - **Chrome extension:** install from the Chrome Web Store, then pin it to your toolbar.
 - **Web app:** open the MaskIT page; no install needed.
 
-## Using the extension
+## Using the web app (available now)
+1. Paste your text into box 1 and choose a level and style.
+2. Box 2 lists everything found. Untick any item that should stay.
+3. Copy the masked text from box 3 and paste it into your AI tool.
+4. Paste the AI reply into box 4 and click **Restore** to put the real values back. The mapping exists only while the page is open.
+
+## Using the extension (planned)
 1. Open a supported AI site.
 2. Paste or type your text as usual.
 3. MaskIT shows "N sensitive items found" with each item highlighted.

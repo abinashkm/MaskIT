@@ -75,3 +75,9 @@ Format: **Context -> Decision -> Alternatives -> Consequences.**
 - **Decision:** Detect names after labels and titles ("Patient:", "Dr.", "Dear") with confidence 0.7, so the rules-only build still catches the most common cases.
 - **Alternatives:** Skip names until NER (leaves an obvious gap); capitalized-word heuristics (too many false positives).
 - **Consequences:** Names with no label are missed until the NER layer is added. This limitation is stated in the user guide.
+
+## D-013: CSP injected at build time only, core consumed from source in dev
+- **Context:** The web page must prove it makes no network calls, but Vite's dev server needs inline scripts that a strict CSP would block.
+- **Decision:** A small Vite plugin adds the CSP meta tag (`connect-src 'none'`) only for production builds. In dev, the web app aliases `@maskit/core` straight to its TypeScript source.
+- **Alternatives:** Always-on CSP (breaks dev hot reload); no CSP (weaker privacy guarantee).
+- **Consequences:** Dev and production differ slightly, so the production build must be checked before release. No core build step is needed to run the app in dev.

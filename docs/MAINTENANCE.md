@@ -33,7 +33,8 @@ pnpm install
 | Run core tests in watch mode | `pnpm --filter core test --watch` |
 | Lint and format check | `pnpm lint` |
 | Type check | `pnpm typecheck` |
-| Start web app locally **(planned)** | `pnpm --filter web dev` |
+| Start web app locally | `pnpm --filter @maskit/web dev` (opens on http://localhost:5173) |
+| Build web app | `pnpm --filter @maskit/web build` (output in `packages/web/dist`, any static host) |
 | Build extension **(planned)** | `pnpm --filter extension build` |
 | Build everything | `pnpm build` |
 | Run E2E tests **(planned)** | `pnpm e2e` |
