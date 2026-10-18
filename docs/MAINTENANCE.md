@@ -35,16 +35,27 @@ pnpm install
 | Type check | `pnpm typecheck` |
 | Start web app locally | `pnpm --filter @maskit/web dev` (opens on http://localhost:5173) |
 | Build web app | `pnpm --filter @maskit/web build` (output in `packages/web/dist`, any static host) |
-| Build extension **(planned)** | `pnpm --filter extension build` |
+| Build extension | `pnpm --filter @maskit/extension build` (output in `packages/extension/dist`) |
 | Build everything | `pnpm build` |
 | Run E2E tests **(planned)** | `pnpm e2e` |
 | Run benchmarks **(planned)** | `pnpm bench` |
 
 ## 4. Loading the extension locally
-1. Build: `pnpm --filter extension build`.
+1. Build: `pnpm --filter @maskit/extension build`.
 2. Open `chrome://extensions`, enable **Developer mode**.
 3. Click **Load unpacked** and select `packages/extension/dist`.
 4. After code changes, rebuild and click the reload icon on the extension card.
+
+## 4a. First-time live check of the extension (do this before relying on it)
+For each of ChatGPT, Claude and Gemini:
+1. Load the unpacked extension and open the site (signed in or not).
+2. Confirm the badge says "MaskIT on".
+3. Type `Email me at test@example.com` and press Enter: the review dialog must appear and the message must not be sent.
+4. Click **Mask selected**: the box must show `[EMAIL_1]`. Press Enter: it sends.
+5. Repeat using the Send button, and with a multi-line prompt.
+6. Click **Send without masking**, then Send: it sends once; the next send is checked again.
+7. Paste an AI reply containing `[EMAIL_1]` into the popup's restore box: it shows the email.
+Record results and any selector fixes in CHANGELOG.
 
 ## 5. Adding a new recognizer
 1. Add the recognizer to the matching file in `packages/core/src/recognizers/` (or a new file) implementing the `Recognizer` interface. If it needs a new entity type, add it to `types.ts`.
@@ -55,9 +66,9 @@ pnpm install
 6. Update CHANGELOG, ARCHITECTURE (if behavior changed) and USER_GUIDE (coverage table).
 
 ## 6. Fixing a broken AI-site adapter
-1. Open the site, inspect the input box and send button.
-2. Update selectors in `packages/extension/src/adapters/<site>.ts`.
-3. Run the adapter E2E test against the mocked page, then test manually on the real site.
+1. Open the site, inspect the input box and send button. The page badge reading "MaskIT: prompt box not found" confirms the input selector is stale.
+2. Update the selectors for that site in `packages/extension/src/adapters.ts`.
+3. Run `pnpm --filter @maskit/extension test`, then test manually on the real site: type a fake email, press Enter, confirm the review dialog appears, mask it, and confirm the box shows `[EMAIL_1]`.
 4. Record the fix in CHANGELOG.
 
 ## 7. Release process

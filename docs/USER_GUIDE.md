@@ -1,6 +1,6 @@
 # User Guide
 
-> Status: the **web app** works today (run it locally, see MAINTENANCE.md). The Chrome extension and file upload are **(planned)**; sections about them describe the intended behavior.
+> Status: the **web app** and the **Chrome extension** are built and can be run locally (see MAINTENANCE.md). The extension has not yet been checked on the live AI sites and is not on the Chrome Web Store. File upload is **(planned)**.
 
 ## What MaskIT does
 MaskIT finds sensitive information in your text or files and replaces it with safe placeholders **before** you paste it into an AI tool. Everything happens on your device. Nothing is uploaded.
@@ -15,13 +15,17 @@ MaskIT finds sensitive information in your text or files and replaces it with sa
 3. Copy the masked text from box 3 and paste it into your AI tool.
 4. Paste the AI reply into box 4 and click **Restore** to put the real values back. The mapping exists only while the page is open.
 
-## Using the extension (planned)
-1. Open a supported AI site.
-2. Paste or type your text as usual.
-3. MaskIT shows "N sensitive items found" with each item highlighted.
-4. Review: untick anything that should stay, then click **Mask**.
-5. Send. The AI sees placeholders like `[PERSON_1]`.
-6. Click **Restore** on the AI's reply to put the real values back (locally).
+## Using the extension
+Supported sites: ChatGPT (chatgpt.com), Claude (claude.ai), Gemini (gemini.google.com).
+1. Open a supported AI site. A small badge in the corner says "MaskIT on".
+2. Type or paste your prompt as usual and press Enter (or click Send).
+3. If sensitive items are found, the send is paused and a window lists them.
+4. Untick anything that is fine to send, then click **Mask selected**. The box now shows placeholders like `[PERSON_1]`.
+5. Read the text, then press Enter or Send yourself. The AI only sees placeholders.
+6. To get real values back, open the MaskIT toolbar popup, paste the AI's reply and click **Restore**.
+- **Send without masking** lets exactly one send through (for 10 seconds); the next prompt is checked again.
+- If the badge says "prompt box not found", the site changed and MaskIT is **not** protecting that page. Update the extension or use the web app.
+- The toolbar popup has the on/off switch, level, and your own always-mask words.
 
 ## Using files
 Drag a TXT, DOCX, PDF or CSV/XLSX file into the web app. Review the findings and download the masked copy.

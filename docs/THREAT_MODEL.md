@@ -29,6 +29,11 @@
 | T10 | Tampered release build | Reproducible builds, signed tags, official store distribution |
 | T11 | Other extensions reading page content | Out of our control; documented in limitations |
 | T12 | Logs or error messages contain user data | Never log input text; sanitize errors |
+| T13 | Settings (custom words) uploaded by browser sync | Settings use `chrome.storage.local`, never the synced store; a test fails if the synced store is used |
+| T14 | Extension silently stops protecting after a site redesign | Visible badge ("prompt box not found"); adapter tests; manual live check before each release |
+| T15 | Rich editor rejects the masked text, leaving the original in the box | Result is verified; on mismatch the masked text goes to the clipboard and the user is warned |
+| T16 | "Send without masking" left active and a later prompt slips through | The permission is one-shot and expires after 10 seconds |
+| T17 | Look-alike domain activates the extension | Hosts are matched exactly (or as real subdomains); manifest lists only four hosts |
 
 ## Out of scope
 - A compromised operating system or browser.

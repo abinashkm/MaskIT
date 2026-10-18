@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MaskIT</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <h1>MaskIT</h1>
+    <p id="status" class="muted">Checking this tab...</p>
+
+    <label class="row"><input type="checkbox" id="enabled" /> Protect my prompts</label>
+
+    <label>
+      Masking level
+      <select id="level">
+        <option value="basic">Basic: contact, financial, secrets</option>
+        <option value="standard">Standard: adds names, addresses, DOB, IDs</option>
+        <option value="strict">Strict: adds all dates, ages over 89</option>
+      </select>
+    </label>
+
+    <label>
+      Always mask these words (comma separated)
+      <input type="text" id="terms" placeholder="Project Falcon, Acme Corp" />
+    </label>
+
+    <h2>Restore an AI reply</h2>
+    <p class="muted">Paste a reply containing tokens like [EMAIL_1]. Done locally in this tab.</p>
+    <textarea id="reply" rows="4"></textarea>
+    <button id="restore">Restore</button>
+    <pre id="restored"></pre>
+
+    <p class="muted small">
+      Nothing is uploaded. No tool catches everything: review before sending.
+    </p>
+    <script src="popup.js"></script>
+  </body>
+</html>

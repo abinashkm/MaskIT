@@ -15,6 +15,23 @@ Every change is recorded here: **what** changed, **where** it lives, and **how i
 
 ---
 
+### 2026-10-18: Chrome extension (Phase 2)
+- **What:** A Manifest V3 extension that checks your prompt for sensitive data when you press Enter or click Send on ChatGPT, Claude or Gemini, and lets you review and mask it first. A toolbar popup holds settings and a "restore AI reply" tool.
+- **Where:** `packages/extension/`: `manifest.json`, `popup.html/css`, `scripts/build.mjs`, and in `src/`: `content.ts` (wiring), `adapters.ts` (per-site selectors), `editor.ts` (read/write the prompt box), `guard.ts` (what interrupts a send, one-shot bypass), `ui.ts` (review dialog, badge, toast), `settings.ts`, `messages.ts`, `popup.ts`. Tests in `test/extension.test.ts` and `test/privacy.test.ts`. Also `packages/web/tsconfig.json` and `eslint.config.js` adjusted.
+- **How it works:**
+  1. `content.ts` runs only on the four listed hosts. It listens for Enter keydown (in the prompt box) and clicks on the send button, in the capture phase so it runs before the site's own handlers.
+  2. `guard.evaluate()` runs the core engine on the prompt text using the saved level and custom words. If nothing is found, the send goes through untouched.
+  3. If something is found, the send is blocked and a review dialog (in a closed shadow DOM) lists each item with a checkbox. Choices: **Mask selected** (replaces the box content with tokens and lets the user check before sending), **Send without masking** (allows exactly one send within 10 seconds), **Cancel**.
+  4. `editor.writeText()` replaces content in a way rich editors notice (native value setter for textareas, `execCommand("insertText")` for contenteditable). If the editor does not end up with the expected text, the masked text is copied to the clipboard and the user is told.
+  5. The token mapping stays in the content script's memory (isolated from the page's scripts) and disappears on reload or tab close. The popup asks the content script to restore text via messages, so the mapping never moves.
+  6. A small badge shows "MaskIT on", "MaskIT off" or "MaskIT: prompt box not found", so a broken adapter is visible instead of silently unprotected.
+  7. Settings are stored in `chrome.storage.local`, never the synced store.
+  8. `scripts/build.mjs` bundles with esbuild into plain scripts (`dist/content.js`, `dist/popup.js`) plus the manifest and popup files.
+- **Why:** The product's main surface (D-004, D-005, D-009, D-014).
+- **Tests:** 23 extension tests: host matching (look-alike domains rejected), selector helpers, textarea and rich-editor writes (including failure and whitespace-only differences), guard filtering by level and custom words, bypass is one-shot and expires, settings validation, and privacy invariants (source has no `fetch`, `XMLHttpRequest`, `WebSocket`, `sendBeacon`, synced storage or `innerHTML`; manifest asks only for `storage` and the four AI hosts; extension pages cannot connect to the network).
+- **Not verified:** The site selectors and the editor write path are written from knowledge of these sites and tested only against mocked DOM. They have **not** been tried on the live sites. Expect to adjust `adapters.ts` after the first real test.
+- **Docs updated:** CHANGELOG, PLAN, ARCHITECTURE, MAINTENANCE, USER_GUIDE, THREAT_MODEL, DECISIONS (D-014, D-015), INTERVIEW_GUIDE, docs/README.
+
 ### 2026-10-18: Web demo app (completes Phase 1 MVP)
 - **What:** A static React page where you paste text, pick a level and style, review each finding, copy the masked text, and restore an AI reply locally.
 - **Where:** `packages/web/` (`index.html`, `vite.config.ts`, `src/App.tsx`, `src/main.tsx`, `src/styles.css`).

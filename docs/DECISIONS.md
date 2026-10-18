@@ -81,3 +81,15 @@ Format: **Context -> Decision -> Alternatives -> Consequences.**
 - **Decision:** A small Vite plugin adds the CSP meta tag (`connect-src 'none'`) only for production builds. In dev, the web app aliases `@maskit/core` straight to its TypeScript source.
 - **Alternatives:** Always-on CSP (breaks dev hot reload); no CSP (weaker privacy guarantee).
 - **Consequences:** Dev and production differ slightly, so the production build must be checked before release. No core build step is needed to run the app in dev.
+
+## D-014: Block the send, mask on approval, and let the user press send
+- **Context:** Automatically re-triggering the site's send action after masking is fragile: each site (ProseMirror, Quill) handles synthetic events differently.
+- **Decision:** Intercept Enter and Send in the capture phase. On approval, replace the box content and stop; the user checks the result and sends. "Send without masking" allows one send within 10 seconds.
+- **Alternatives:** Auto-send after masking (breaks when sites change); mask on paste only (misses typed content).
+- **Consequences:** One extra keypress, but far fewer ways to break and the user always sees the masked text before it leaves.
+
+## D-015: No service worker, no synced storage, mapping in content-script memory
+- **Context:** Custom words and the token mapping are sensitive. The content script runs in an isolated world the page cannot read.
+- **Decision:** Keep the mapping in content-script memory, save settings in `chrome.storage.local`, and skip a service worker until something needs it. The popup reaches the mapping through messages.
+- **Alternatives:** `chrome.storage.session` (needs a worker to open access to content scripts); `chrome.storage.sync` (uploads to Google).
+- **Consequences:** The mapping is lost on page reload, so Restore only works in the same page session. Persistent history is a possible opt-in feature later.

@@ -79,12 +79,16 @@ Token (default), full redaction, generalization (date to year), synthetic replac
 ## 3b. Web app (implemented, `packages/web`)
 A static React + Vite page. It imports `@maskit/core` and holds one `MaskSession` in React state. Flow: text, level, style and custom words go into `analyze()`; the user unticks findings in the review list; `applyMask()` produces the output; `restoreText()` handles AI replies. Production builds carry a CSP with `connect-src 'none'`.
 
-## 4. Chrome extension (planned)
-- **Content script:** attached to supported AI sites through per-site adapters. Intercepts paste and send, calls the engine, shows the review overlay.
-- **Service worker:** settings and lifecycle only. No network.
-- **Popup:** level selector, category toggles, custom rules.
-- **Site adapters:** one small module per site holding its DOM selectors, so breakage is isolated and easy to fix.
-- **Storage:** settings in `chrome.storage.sync`; mapping in `chrome.storage.session` (cleared when browser closes).
+## 4. Chrome extension (implemented, `packages/extension`; not yet verified on live sites)
+- **Content script (`content.ts`):** attached to the four supported hosts. Catches Enter and Send clicks in the capture phase, calls the engine through `guard.ts`, shows the review dialog, and holds the `MaskSession`.
+- **No service worker:** not needed yet; settings are read directly from storage and the popup talks to the content script by message.
+- **Popup (`popup.ts`):** enable switch, level, custom words, tab status, and the restore tool.
+- **Site adapters (`adapters.ts`):** the only place with site-specific selectors; one entry per site. Host matching accepts exact hosts and real subdomains only.
+- **Editor layer (`editor.ts`):** reads and replaces prompt content for textareas and contenteditable editors, and reports failure so the UI can fall back to the clipboard.
+- **UI (`ui.ts`):** review dialog, status badge and toast inside a closed shadow root; user text is inserted only with `textContent`.
+- **Storage:** settings in `chrome.storage.local` (the synced store would upload custom words to Google). The token mapping lives only in content-script memory and is gone on reload or tab close.
+- **Send handling:** MaskIT blocks the send, masks the box on approval, and the user presses send themselves. It never programmatically clicks send, because that is fragile across editors.
+- **Build:** `scripts/build.mjs` (esbuild) outputs `dist/` as plain scripts that Chrome can load unpacked.
 
 ## 5. File masking (planned)
 Parsers extract text per format (TXT, CSV/XLSX, DOCX, PDF via pdf.js, OCR via tesseract.js for scans), run the engine in a Web Worker, and write the masked output in the same format where possible.
