@@ -63,3 +63,15 @@ Format: **Context -> Decision -> Alternatives -> Consequences.**
 - **Decision:** Update CHANGELOG (and DECISIONS where relevant) in the same commit as code. `CLAUDE.md` instructs the AI assistant to do this.
 - **Enforcement:** A pre-commit hook rejects code commits without a CHANGELOG change; a PR template carries a docs checklist; a CI check is planned. Instructions alone were not trusted to keep docs current.
 - **Consequences:** Docs stay accurate; small overhead per commit. The hook is local, so it can be bypassed with `--no-verify`.
+
+## D-011: Priority-based overlap resolution and context-gated ambiguous data
+- **Context:** Several recognizers can match the same text (a 16-digit run looks like a phone and a card). Some formats (nine digits, plain dates) are common in non-sensitive text.
+- **Decision:** Resolve overlaps by entity priority (validated, specific types win), then confidence, then span length. Ambiguous formats only count with nearby context words, or at low confidence that only strict levels accept.
+- **Alternatives:** Always keep the highest confidence (hard to reason about, unstable when scores are tuned); mask everything ambiguous (too many false positives, unusable output).
+- **Consequences:** Predictable behavior that is easy to test and explain. Priorities live in one table (`resolver.ts`) and must be updated when a new entity type is added.
+
+## D-012: Names detected by labels until NER ships
+- **Context:** Names are the most common PII in free text, but the NER model is a later phase and is optional.
+- **Decision:** Detect names after labels and titles ("Patient:", "Dr.", "Dear") with confidence 0.7, so the rules-only build still catches the most common cases.
+- **Alternatives:** Skip names until NER (leaves an obvious gap); capitalized-word heuristics (too many false positives).
+- **Consequences:** Names with no label are missed until the NER layer is added. This limitation is stated in the user guide.

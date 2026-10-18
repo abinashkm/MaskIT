@@ -1,0 +1,31 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - name: Changelog updated when code changes (PRs)
+        if: github.event_name == 'pull_request'
+        run: |
+          files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          code=$(echo "$files" | grep -Ev '^(docs/|CLAUDE\.md$|\.githooks/|\.github/|.*\.md$)' || true)
+          if [ -n "$code" ] && ! echo "$files" | grep -q '^docs/CHANGELOG\.md$'; then
+            echo "Code changed but docs/CHANGELOG.md was not updated."; exit 1
+          fi

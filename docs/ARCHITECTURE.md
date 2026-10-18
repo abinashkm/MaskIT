@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: **design** (nothing implemented yet). Sections marked **(planned)** describe intended behavior. Update this doc as code lands.
+> Status: `packages/core` is implemented (Phase 1 engine). Extension, web app, CLI, file parsers and NER are **(planned)**. Update this doc as code lands.
 
 ## 1. Big picture
 One shared engine, several thin front-ends. All processing is local.
@@ -18,9 +18,9 @@ One shared engine, several thin front-ends. All processing is local.
 
 Rule: **front-ends never contain detection logic.** Anything about finding or masking data lives in `core`.
 
-## 2. Repository layout (planned)
+## 2. Repository layout
 ```
-packages/core/       detection + masking engine
+packages/core/       detection + masking engine (implemented)
 packages/extension/  Manifest V3 extension (content script, service worker, popup)
 packages/web/        static web app (React + Vite)
 packages/cli/        batch CLI (later)
@@ -39,15 +39,35 @@ masked text -> user sends to AI
 AI reply -> Restorer uses Mapping -> original values back (local only)
 ```
 
-### 3.2 Key types (planned)
+### 3.2 Key types (implemented, `packages/core/src/types.ts`)
 - **Recognizer:** `{ id, entityType, analyze(text) -> Finding[] }`. One per kind of data (email, card, ...).
 - **Finding:** `{ entityType, start, end, confidence, recognizerId }`.
 - **Level:** Basic, Standard, Strict, Custom. A level is a set of enabled entity types plus a confidence threshold.
 - **Mapping:** token to original value, e.g. `[PERSON_1] -> "Jane Doe"`. Same value always gets the same token in a session.
 
+### 3.2a Public API (`packages/core/src/index.ts`)
+| Function | Purpose |
+|---|---|
+| `analyze(text, options)` | Returns resolved `Finding[]` for the chosen level |
+| `maskText(text, options)` | Analyze, then replace findings; returns `{ masked, findings, session }` |
+| `applyMask(text, findings, session, style)` | Mask only the findings a user approved in the review UI |
+| `restoreText(text, session)` | Put original values back into an AI reply |
+| `MaskSession` | Holds the token to value mapping (sensitive; memory only) |
+
+### 3.2b Source map
+| File | Role |
+|---|---|
+| `types.ts` | Entity types, `Finding`, `Recognizer`, options |
+| `levels.ts` | Which entity types and minimum confidence each level uses |
+| `validators.ts` | Luhn, IBAN mod-97, ABA, SSN rules, IP validation |
+| `recognizers/*.ts` | One recognizer per data kind, grouped by theme; `index.ts` lists them |
+| `resolver.ts` | Entity priority table and overlap removal |
+| `analyzer.ts` | Runs recognizers, applies level and confidence filters |
+| `masker.ts` | `MaskSession`, token assignment, masking, restoring |
+
 ### 3.3 Detection layers
-1. **Pattern recognizers:** regex plus validation (Luhn for cards, mod-97 for IBAN, structural SSN rules). Validation removes most false positives.
-2. **Context scoring:** words near a match ("DOB", "Patient", "MRN") raise or lower confidence.
+1. **Pattern recognizers (implemented):** regex plus validation (Luhn for cards, mod-97 for IBAN, structural SSN rules). Validation removes most false positives.
+2. **Context scoring (implemented as required or boosting context):** words near a match ("DOB", "Patient", "MRN") raise or lower confidence.
 3. **NER (optional):** quantized ONNX model in a Web Worker for names, organizations, locations. Loaded only if the user enables it.
 
 ### 3.4 Overlap resolution

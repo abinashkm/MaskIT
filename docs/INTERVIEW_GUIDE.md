@@ -172,7 +172,7 @@ Keep the core free; offer a paid team policy/management and support tier. (Not p
 - Honest limits: not 100% detection, not a compliance certificate.
 
 ## 10. Your own notes (fill in as you build)
-- Interesting bug I fixed:
-- Metric I'm proud of:
-- Something I learned:
+- Interesting bug I fixed: a URL like `?token=abc123&b=2` was reported as a generic SECRET with the value `abc123&b=2`, hiding the more specific URL_CREDENTIALS finding. The keyword recognizer's value pattern did not stop at `&`, and the resolver's priority put SECRET above URL_CREDENTIALS. I excluded `&` from the value and raised URL_CREDENTIALS priority. Lesson: overlap rules need tests with realistic strings.
+- Metric I'm proud of: 51 tests including a 130 KB input in under 2 s and a test that fails if the engine ever calls `fetch`.
+- Something I learned: checksums (Luhn, mod-97, ABA) remove most false positives for structured IDs; free-text names are the hard part and need context rules or NER.
 - A decision I changed and why:

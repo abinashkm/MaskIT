@@ -95,6 +95,15 @@ Stack: TypeScript, Vite, React, Vitest, Playwright, ESLint/Prettier, GitHub Acti
 | **3. v1.5** | File masking: DOCX, PDF, CSV/XLSX | Masked files downloadable; fixtures pass |
 | **4. v2** | NER model, OCR, benchmarks, local audit log, Chrome Web Store listing | Published benchmarks; store submission |
 
+## 11a. Progress
+| Phase | Status |
+|---|---|
+| 0. Setup | Done: monorepo, TypeScript, Vitest, ESLint, Prettier, CI workflow, MIT license |
+| 1. MVP | Engine done (recognizers, levels, masking, restore, 51 tests). Web demo page: next |
+| 2-4 | Not started |
+
+Details of each change are in [CHANGELOG.md](CHANGELOG.md).
+
 ## 12. Risks and mitigations
 | Risk | Mitigation |
 |---|---|

@@ -2,7 +2,7 @@
 
 How to set up, run, test, release and keep MaskIT healthy.
 
-> Commands below are the **intended** ones. Update them if the real scripts differ once Phase 0 lands.
+> Commands marked **(planned)** do not exist yet (they need the extension, web app or benchmark packages). The rest work today.
 
 ## 1. Prerequisites
 - Node.js 20 LTS or newer
@@ -29,14 +29,15 @@ pnpm install
 | Task | Command |
 |---|---|
 | Run all tests | `pnpm test` |
+| Format code | `pnpm format` (check only: `pnpm format:check`) |
 | Run core tests in watch mode | `pnpm --filter core test --watch` |
 | Lint and format check | `pnpm lint` |
 | Type check | `pnpm typecheck` |
-| Start web app locally | `pnpm --filter web dev` |
-| Build extension | `pnpm --filter extension build` |
+| Start web app locally **(planned)** | `pnpm --filter web dev` |
+| Build extension **(planned)** | `pnpm --filter extension build` |
 | Build everything | `pnpm build` |
-| Run E2E tests | `pnpm e2e` |
-| Run benchmarks | `pnpm bench` |
+| Run E2E tests **(planned)** | `pnpm e2e` |
+| Run benchmarks **(planned)** | `pnpm bench` |
 
 ## 4. Loading the extension locally
 1. Build: `pnpm --filter extension build`.
@@ -45,11 +46,11 @@ pnpm install
 4. After code changes, rebuild and click the reload icon on the extension card.
 
 ## 5. Adding a new recognizer
-1. Create `packages/core/src/recognizers/<name>.ts` implementing the `Recognizer` interface.
-2. Add validation (checksum/structure) if the format allows it.
-3. Register it in the recognizer registry and assign it to levels.
+1. Add the recognizer to the matching file in `packages/core/src/recognizers/` (or a new file) implementing the `Recognizer` interface. If it needs a new entity type, add it to `types.ts`.
+2. Add validation (checksum/structure) in `validators.ts` if the format allows it.
+3. Register it in `recognizers/index.ts`, add its type to the right levels in `levels.ts`, and give it a slot in `ENTITY_PRIORITY` in `resolver.ts`.
 4. Write tests: valid samples, invalid samples, near-misses, text with the value embedded.
-5. Add it to the benchmark dataset.
+5. Add it to the benchmark dataset **(planned)**.
 6. Update CHANGELOG, ARCHITECTURE (if behavior changed) and USER_GUIDE (coverage table).
 
 ## 6. Fixing a broken AI-site adapter
