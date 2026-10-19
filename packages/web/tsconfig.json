@@ -7,7 +7,8 @@
     "types": ["vite/client", "node"],
     "baseUrl": ".",
     "paths": {
-      "@maskit/core": ["../core/src/index.ts"]
+      "@maskit/core": ["../core/src/index.ts"],
+      "@maskit/files": ["../files/src/index.ts"]
     }
   },
   "include": ["src", "vite.config.ts"]

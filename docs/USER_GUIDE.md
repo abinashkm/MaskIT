@@ -1,6 +1,6 @@
 # User Guide
 
-> Status: the **web app** and the **Chrome extension** are built and can be run locally (see MAINTENANCE.md). The extension has not yet been checked on the live AI sites and is not on the Chrome Web Store. File upload is **(planned)**.
+> Status: the **web app** (including file masking) and the **Chrome extension** are built and can be run locally (see MAINTENANCE.md). Neither has been checked by hand in a browser against real-world files or the live AI sites yet, and the extension is not on the Chrome Web Store.
 
 ## What MaskIT does
 MaskIT finds sensitive information in your text or files and replaces it with safe placeholders **before** you paste it into an AI tool. Everything happens on your device. Nothing is uploaded.
@@ -27,8 +27,18 @@ Supported sites: ChatGPT (chatgpt.com), Claude (claude.ai), Gemini (gemini.googl
 - If the badge says "prompt box not found", the site changed and MaskIT is **not** protecting that page. Update the extension or use the web app.
 - The toolbar popup has the on/off switch, level, and your own always-mask words.
 
-## Using files
-Drag a TXT, DOCX, PDF or CSV/XLSX file into the web app. Review the findings and download the masked copy.
+## Using files (web app)
+Use the **Mask a file** box: choose a file or drop it there. The level, style and always-mask words you set above apply. You get a count of what was masked, any warnings, and a download.
+
+| Format | What you get | Good to know |
+|---|---|---|
+| TXT, MD, LOG, JSON | Masked file of the same type | Treated as plain text |
+| CSV, TSV | Masked file, same delimiter | Each cell is checked; columns named like Name, Email, DOB, SSN are masked entirely. The header row is kept |
+| DOCX | Masked Word file | Keeps formatting. Also masks headers, footers, footnotes, comments and tracked-deletion text, replaces reviewer names with "Author" and clears the author, title and company in the file properties. **Images are not scanned** |
+| PDF | Masked **plain text** (`.masked.txt`) | Layout and images are dropped. Scanned PDFs (no selectable text) are refused because OCR is not available yet |
+| XLSX | Not supported yet **(planned)** | Export as CSV for now |
+
+Files up to 25 MB. Open the masked file and read it before sharing: no tool catches everything.
 
 ## Choosing a masking level
 | Level | Masks | Use when |

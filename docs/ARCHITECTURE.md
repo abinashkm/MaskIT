@@ -21,7 +21,8 @@ Rule: **front-ends never contain detection logic.** Anything about finding or ma
 ## 2. Repository layout
 ```
 packages/core/       detection + masking engine (implemented)
-packages/extension/  Manifest V3 extension (content script, service worker, popup)
+packages/extension/  Manifest V3 extension (content script, popup)
+packages/files/      file format handlers: CSV, DOCX, text (implemented)
 packages/web/        static web app (React + Vite) (implemented)
 packages/cli/        batch CLI (later)
 docs/                all documentation
@@ -78,6 +79,18 @@ Token (default), full redaction, generalization (date to year), synthetic replac
 
 ## 3b. Web app (implemented, `packages/web`)
 A static React + Vite page. It imports `@maskit/core` and holds one `MaskSession` in React state. Flow: text, level, style and custom words go into `analyze()`; the user unticks findings in the review list; `applyMask()` produces the output; `restoreText()` handles AI replies. Production builds carry a CSP with `connect-src 'none'`.
+
+## 3c. File masking (implemented, `packages/files` and `packages/web`)
+`@maskit/files` only reads and writes file formats; all detection still goes through `@maskit/core`.
+
+| File | Role |
+|---|---|
+| `index.ts` | `maskFile()`: size limit, picks a handler by extension, returns bytes, tally, warnings, preview |
+| `csv.ts` | Quote-aware CSV/TSV parser and writer, header hints (a "DOB" column is masked as a date of birth) |
+| `docx.ts` | Unzips the DOCX, masks text per paragraph across runs, masks tracked deletions, anonymizes reviewer names and document properties, re-zips |
+| `mask.ts` | Shared helpers: mask a string, count findings, create replacement tokens |
+
+PDF is handled in the web app only (`packages/web/src/pdf.ts`) because pdf.js needs a browser: it extracts text, then the text goes through `maskFile` as a `.txt`. The UI is `FilePanel.tsx`. All of it shares the app's `MaskSession`.
 
 ## 4. Chrome extension (implemented, `packages/extension`; not yet verified on live sites)
 - **Content script (`content.ts`):** attached to the four supported hosts. Catches Enter and Send clicks in the capture phase, calls the engine through `guard.ts`, shows the review dialog, and holds the `MaskSession`.

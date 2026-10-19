@@ -65,6 +65,20 @@ Record results and any selector fixes in CHANGELOG.
 5. Add it to the benchmark dataset **(planned)**.
 6. Update CHANGELOG, ARCHITECTURE (if behavior changed) and USER_GUIDE (coverage table).
 
+## 5a. Adding a new file format
+1. Add a handler in `packages/files/src/` that takes bytes, masks text through `maskString` / `replacementFor` (never its own detection) and returns bytes.
+2. Register the extension in `maskFile()` in `packages/files/src/index.ts` and in `SUPPORTED_EXTENSIONS`; add it to the `accept` list in `packages/web/src/FilePanel.tsx`.
+3. Test with a small hand-built fixture and, if possible, a real file from the producing application.
+4. Add the format to USER_GUIDE and CHANGELOG, and list what is *not* carried over (images, metadata) as a warning in the result.
+
+## 5b. Live check of file masking (before relying on it)
+1. Run `pnpm --filter @maskit/web dev` and open the page.
+2. Drop a `.txt`, a `.csv` with Name/Email columns, a `.docx` created in Word, a `.docx` from Google Docs or LibreOffice, and a text PDF.
+3. For each: the summary counts look right, the download opens in the original app without a repair prompt, and no original value remains (search the output for a known email and name).
+4. For the DOCX also check: tracked changes, comments, headers/footers and a table. Open File > Info and confirm author and title are blank.
+5. Drop a scanned PDF: it must be refused with the "no selectable text" message.
+Record results (and any fixes) in CHANGELOG.
+
 ## 6. Fixing a broken AI-site adapter
 1. Open the site, inspect the input box and send button. The page badge reading "MaskIT: prompt box not found" confirms the input selector is stale.
 2. Update the selectors for that site in `packages/extension/src/adapters.ts`.

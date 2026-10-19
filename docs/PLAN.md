@@ -101,7 +101,8 @@ Stack: TypeScript, Vite, React, Vitest, Playwright, ESLint/Prettier, GitHub Acti
 | 0. Setup | Done: monorepo, TypeScript, Vitest, ESLint, Prettier, CI workflow, MIT license |
 | 1. MVP | Done: engine (recognizers, levels, masking, restore, 51 tests) and web demo page. UI automated tests and a manual browser check are still open |
 | 2. Extension | Built and unit-tested (Chrome, MV3: ChatGPT, Claude, Gemini). Live-site verification, icons and Web Store listing are still open |
-| 3-4 | Not started |
+| 3. Files | Built and unit-tested: TXT, MD, LOG, JSON, CSV/TSV, DOCX, PDF (as text). Browser check, real-world DOCX samples and XLSX are still open |
+| 4. NER, OCR, benchmarks, store listing | Not started |
 
 Details of each change are in [CHANGELOG.md](CHANGELOG.md).
 

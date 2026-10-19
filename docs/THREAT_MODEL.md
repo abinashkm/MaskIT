@@ -33,6 +33,8 @@
 | T14 | Extension silently stops protecting after a site redesign | Visible badge ("prompt box not found"); adapter tests; manual live check before each release |
 | T15 | Rich editor rejects the masked text, leaving the original in the box | Result is verified; on mismatch the masked text goes to the clipboard and the user is warned |
 | T16 | "Send without masking" left active and a later prompt slips through | The permission is one-shot and expires after 10 seconds |
+| T18 | Original text survives inside a masked Word file (tracked deletions, comments, headers, document properties, reviewer names) | The DOCX handler masks all text parts including deleted text, anonymizes comment authors and blanks document properties; images are called out as not scanned |
+| T19 | Malformed or oversized file freezes or exhausts the tab | 25 MB input limit, 100 MB limit on unzipped DOCX contents, invalid files rejected with a message. Processing still runs on the main thread (moving it to a worker is **(planned)**) |
 | T17 | Look-alike domain activates the extension | Hosts are matched exactly (or as real subdomains); manifest lists only four hosts |
 
 ## Out of scope

@@ -15,6 +15,24 @@ Every change is recorded here: **what** changed, **where** it lives, and **how i
 
 ---
 
+### 2026-10-19: File masking (Phase 3)
+- **What:** Mask files, not just pasted text: TXT, MD, LOG, JSON, CSV, TSV, DOCX, and PDF (as text). New "Mask a file" panel in the web app with summary, warnings, preview and download.
+- **Where:**
+  - New package `packages/files/` (`src/index.ts` dispatch, `docx.ts`, `csv.ts`, `mask.ts`, `types.ts`; tests in `test/files.test.ts`).
+  - `packages/web/src/FilePanel.tsx`, `packages/web/src/pdf.ts` (PDF text extraction with pdf.js), `packages/web/test/pdf.test.ts`, small edits to `App.tsx`, `styles.css`, `vite.config.ts`.
+  - `packages/core/src/index.ts` now also exports `enabledEntityTypes`.
+- **How it works:**
+  1. `maskFile(name, bytes, options)` picks a handler by extension and returns the masked bytes, a count per entity type, warnings, and a text preview. Everything runs in memory in the browser tab.
+  2. **Text files:** masked as one string with the shared `MaskSession`, so tokens match the rest of the app and the Restore box works for files too.
+  3. **CSV/TSV:** parsed with a quote-aware parser (delimiter auto-detected, CRLF and byte order mark handled), each cell is masked on its own. Column headers add context: a cell under "Name", "DOB", "SSN", "Email" and similar is masked as that type even if the value alone looks harmless, but only if the chosen level includes that type. The header row stays readable.
+  4. **DOCX:** the file is unzipped (with a total-size guard) and each text part (`document`, headers, footers, footnotes, endnotes, comments) is processed paragraph by paragraph. Text in Word is split into many runs, so the runs of a paragraph are joined, scanned as one string, and each replacement is written back into the run where the finding starts (the rest of the finding is removed from later runs). Tracked-deletion text (`w:delText`) is masked too because it still holds the original. Comment author names are replaced with "Author", and document properties (creator, last modified by, title, subject, description, keywords, Company, Manager) are blanked. Other files in the archive are copied unchanged.
+  5. **PDF:** pdf.js (loaded only when a PDF is chosen, with `isEvalSupported: false`) extracts the selectable text, which is then masked as plain text and offered as `.masked.txt`. The layout, images and metadata are not carried over. A PDF with no selectable text (a scan) is refused with a clear message because OCR is not built yet **(planned)**.
+  6. Limits: 25 MB per file; DOCX contents may not expand beyond 100 MB.
+- **Why:** The plan promised document masking (D-016, D-017).
+- **Tests:** 17 tests in `packages/files` (CSV parsing and quoting, header hints and level respect, delimiters, byte order mark and a CSV that merely starts with the letters "FEFF", DOCX text split across runs, tracked deletions, XML entities, untouched paragraphs, metadata and reviewer-name removal, other files kept, restore through the shared session, invalid files, size limit) plus 2 for PDF line assembly. The pdf.js calls were checked once in Node against a hand-made PDF.
+- **Not verified:** The file panel and PDF worker have not been exercised in a real browser (drag and drop, download, worker loading under the page's security policy). Real Word documents from Word, Google Docs and LibreOffice have not been tried; only a minimal hand-built DOCX is in the tests. Spreadsheets (`.xlsx`) are not supported yet **(planned)**.
+- **Docs updated:** CHANGELOG, PLAN, ARCHITECTURE, MAINTENANCE, USER_GUIDE, THREAT_MODEL, DECISIONS (D-016, D-017), INTERVIEW_GUIDE, docs/README.
+
 ### 2026-10-18: Chrome extension (Phase 2)
 - **What:** A Manifest V3 extension that checks your prompt for sensitive data when you press Enter or click Send on ChatGPT, Claude or Gemini, and lets you review and mask it first. A toolbar popup holds settings and a "restore AI reply" tool.
 - **Where:** `packages/extension/`: `manifest.json`, `popup.html/css`, `scripts/build.mjs`, and in `src/`: `content.ts` (wiring), `adapters.ts` (per-site selectors), `editor.ts` (read/write the prompt box), `guard.ts` (what interrupts a send, one-shot bypass), `ui.ts` (review dialog, badge, toast), `settings.ts`, `messages.ts`, `popup.ts`. Tests in `test/extension.test.ts` and `test/privacy.test.ts`. Also `packages/web/tsconfig.json` and `eslint.config.js` adjusted.

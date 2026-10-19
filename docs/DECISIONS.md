@@ -93,3 +93,15 @@ Format: **Context -> Decision -> Alternatives -> Consequences.**
 - **Decision:** Keep the mapping in content-script memory, save settings in `chrome.storage.local`, and skip a service worker until something needs it. The popup reaches the mapping through messages.
 - **Alternatives:** `chrome.storage.session` (needs a worker to open access to content scripts); `chrome.storage.sync` (uploads to Google).
 - **Consequences:** The mapping is lost on page reload, so Restore only works in the same page session. Persistent history is a possible opt-in feature later.
+
+## D-016: DOCX masked per paragraph across runs, with metadata cleaned
+- **Context:** Word splits one sentence into many runs (`<w:t>` elements), so scanning run by run misses values like an email broken in two. A masked file that still carries the author name, comments or deleted text would leak.
+- **Decision:** Join the runs of each paragraph, scan once, and write each replacement into the run where the finding starts. Also mask `w:delText`, comments, headers, footers, footnotes and endnotes; replace reviewer names; blank core and app properties; copy everything else unchanged.
+- **Alternatives:** Convert DOCX to text and back (loses formatting); run-by-run masking (misses split values); a full DOCX library (heavy, and still needs the same run handling).
+- **Consequences:** Formatting is preserved and the common leak routes are closed. Text inside images, text boxes that nest paragraphs, and embedded objects is not guaranteed to be handled; images are reported as a warning.
+
+## D-017: PDF is read with pdf.js and masked as plain text
+- **Context:** Truly redacting a PDF in place means editing its drawing instructions and removing the hidden text layer; doing that badly leaves the original text extractable.
+- **Decision:** Extract the selectable text with pdf.js (loaded on demand, no `eval`) and offer a masked `.txt`. Scanned PDFs are refused until OCR exists.
+- **Alternatives:** Draw black boxes over text (the text remains underneath, a classic leak); rebuild a PDF from masked text (possible later, adds a PDF writer).
+- **Consequences:** Safe and simple, but layout and images are lost, which the UI states. The PDF engine adds a large lazily loaded chunk.

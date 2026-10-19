@@ -9,6 +9,7 @@ import {
   type MaskStyle,
 } from "@maskit/core";
 import { useMemo, useState } from "react";
+import { FilePanel } from "./FilePanel";
 
 const SAMPLE = `Patient: Jane Doe, DOB: 03/15/1980, MRN: 00482913
 Email jane.doe@example.com, phone (415) 555-2671
@@ -181,9 +182,11 @@ export function App() {
         <button onClick={copy}>{copied ? "Copied" : "Copy masked text"}</button>
       </section>
 
+      <FilePanel level={level} style={style} customTerms={customTerms} session={session} />
+
       {style === "token" && (
         <section>
-          <h2>4. Restore the AI reply</h2>
+          <h2>Restore the AI reply</h2>
           <p className="muted">
             Paste a reply that contains tokens like [EMAIL_1] to put the real values back, locally.
           </p>

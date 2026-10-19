@@ -2,7 +2,7 @@
 
 MaskIT is a free, local-first tool that masks PII, PHI, financial data and secrets before you send text or documents to AI tools. Nothing leaves your browser.
 
-**Project status:** core engine (`packages/core`), web demo (`packages/web`) and Chrome extension (`packages/extension`, not yet checked on live sites) are implemented; file parsing and NER are next (see [PLAN](PLAN.md) section 11a and [CHANGELOG](CHANGELOG.md)).
+**Project status:** core engine (`packages/core`), file masking (`packages/files`), web app (`packages/web`) and Chrome extension (`packages/extension`) are implemented; none has been checked by hand in a browser yet. NER, OCR and benchmarks are next (see [PLAN](PLAN.md) section 11a and [CHANGELOG](CHANGELOG.md)).
 
 ## Index
 
