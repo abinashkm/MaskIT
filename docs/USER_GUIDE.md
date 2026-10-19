@@ -56,6 +56,9 @@ Names, emails, phone numbers, addresses, national IDs (SSN etc.), passport and l
 - The placeholder-to-real-value table stays in your browser's memory for the session and is cleared when you close the browser.
 - The code is open source so you can check these claims.
 
+## How accurate is it?
+On the project's own synthetic test set (see [BENCHMARKS.md](BENCHMARKS.md)) the rules find every labeled item and flag almost no ordinary text. That set is written by the author and is easier than real documents, so **real-world accuracy is unknown**. Known misses: names with no label such as "Name:" or "Dr.", bare 9-digit SSNs and 10-digit phone numbers with no hint word, dates of birth with no label (only caught as a plain date at the strict level), and non-US addresses.
+
 ## Limits (please read)
 - **No tool catches everything.** Always review before sending.
 - Name and organization detection is less accurate than pattern-based detection.

@@ -105,3 +105,9 @@ Format: **Context -> Decision -> Alternatives -> Consequences.**
 - **Decision:** Extract the selectable text with pdf.js (loaded on demand, no `eval`) and offer a masked `.txt`. Scanned PDFs are refused until OCR exists.
 - **Alternatives:** Draw black boxes over text (the text remains underneath, a classic leak); rebuild a PDF from masked text (possible later, adds a PDF writer).
 - **Consequences:** Safe and simple, but layout and images are lost, which the UI states. The PDF engine adds a large lazily loaded chunk.
+
+## D-018: Synthetic, seeded benchmark with CI floors and a generated report
+- **Context:** Accuracy claims need numbers, but real labeled PII is itself sensitive and I have none.
+- **Decision:** Generate labeled cases from a fixed seed (valid checksums, random surrounding text), score per entity type, include ordinary-text negatives and a separate known-gaps set, and make the report a generated file that a test compares with a fresh run.
+- **Alternatives:** Hand-written examples only (small and biased); public datasets (not available offline here, and real-world style differs per domain); no benchmark (claims would be unsupported).
+- **Consequences:** Cheap, reproducible, a real regression guard, and it already found six bugs. It is optimistic by construction, and tuning against it makes the score look perfect, so the report states that prominently. A second, hand-labeled real-world set is the next step for honest accuracy numbers.

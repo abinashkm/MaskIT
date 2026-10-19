@@ -25,7 +25,7 @@
 | T6 | Overbroad extension permissions abused | Host permissions only for supported sites; no `<all_urls>` |
 | T7 | Remote code or `eval` injection | Strict CSP, no remote scripts, no `eval` |
 | T8 | Malicious file crafted to exploit parser | Use maintained parsers, run in workers, size limits, fuzz tests |
-| T9 | False negatives give false confidence | Mandatory review UI, published recall, clear limitations |
+| T9 | False negatives give false confidence | Mandatory review UI, published results with a known-gaps table and an explicit warning that the data is synthetic, clear limitations. A CI benchmark guard stops accuracy from silently dropping |
 | T10 | Tampered release build | Reproducible builds, signed tags, official store distribution |
 | T11 | Other extensions reading page content | Out of our control; documented in limitations |
 | T12 | Logs or error messages contain user data | Never log input text; sanitize errors |

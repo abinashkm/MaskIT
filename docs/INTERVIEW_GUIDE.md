@@ -76,7 +76,7 @@ A check-digit algorithm used by card numbers. A random 16-digit number fails it 
 Priority of entity type, then confidence, then span length.
 
 **Q: How do you measure accuracy?**
-Labeled synthetic datasets, reporting precision and recall per category. I favor recall (missing data is worse than extra flags) but watch precision so the tool stays usable.
+A seeded synthetic benchmark (docs/BENCHMARKS.md) reports precision and recall per category, false positives on ordinary text, and a known-gaps table; CI fails if it drops or the report is stale. I am explicit that this is synthetic and optimistic and that a hand-labeled real-world set is still needed. I favor recall (missing data is worse than extra flags) but watch precision so the tool stays usable.
 
 **Q: What are false positives vs false negatives here?**
 False positive: harmless over-masking. False negative: sensitive data leaks. So I tune toward fewer false negatives and mitigate false positives with the review step.
@@ -176,6 +176,7 @@ Keep the core free; offer a paid team policy/management and support tier. (Not p
 - Metric I'm proud of: 51 tests including a 130 KB input in under 2 s and a test that fails if the engine ever calls `fetch`.
 - Something I learned: checksums (Luhn, mod-97, ABA) remove most false positives for structured IDs; free-text names are the hard part and need context rules or NER.
 - A decision I changed and why: I first planned to store settings in `chrome.storage.sync` for convenience, then realized it uploads custom words to the user's Google account, which contradicts "nothing leaves your device". I switched to `storage.local` and added a test that fails if the synced store ever appears in the source.
+- Benchmark story (strong one for interviews): I built a seeded synthetic benchmark expecting to publish a good number. The first run showed 96% overall but also IP address recall of 38% and phone precision of 62%. Digging into failures found a real design flaw: the resolver ranked by type priority, and a chance Luhn match inside an IBAN outranked the IBAN. The principle I took away: priority should follow validation strength (mod-97 and checksums over loose shapes). I fixed six bugs, added regression tests, and then wrote down that the resulting 100% is tuned to its own data and proves nothing about real documents. Be ready to say what I would do next: hand-label real consented documents as a second dataset.
 - File-masking story: a sentence in a Word file is split across many text runs, so an email can be cut in half. I join each paragraph's runs, scan once, and put the replacement into the run where the match starts. I also found that "masked" files can still leak through tracked deletions, comments, reviewer names and document properties, so those are handled and tested.
 - Why PDF output is plain text: drawing black boxes over PDF text leaves the real text underneath. A safe approach is to extract, mask and re-emit text, and be upfront that layout is lost.
 - A bug I introduced and caught: while removing the byte order mark from CSV files I briefly ended up with a pattern that stripped the letters "FEFF" from the start of a file. A lint rule flagged the invisible character, my quick fix was wrong, and a test for a CSV that starts with "FEFF" now guards it. Lesson: test the negative case too.

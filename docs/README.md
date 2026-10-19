@@ -2,7 +2,7 @@
 
 MaskIT is a free, local-first tool that masks PII, PHI, financial data and secrets before you send text or documents to AI tools. Nothing leaves your browser.
 
-**Project status:** core engine (`packages/core`), file masking (`packages/files`), web app (`packages/web`) and Chrome extension (`packages/extension`) are implemented; none has been checked by hand in a browser yet. NER, OCR and benchmarks are next (see [PLAN](PLAN.md) section 11a and [CHANGELOG](CHANGELOG.md)).
+**Project status:** core engine (`packages/core`), file masking (`packages/files`), web app (`packages/web`) and Chrome extension (`packages/extension`) are implemented; none has been checked by hand in a browser yet. A synthetic accuracy benchmark exists ([BENCHMARKS.md](BENCHMARKS.md)); real-world accuracy is unmeasured. NER, OCR and the Chrome Web Store listing are next (see [PLAN](PLAN.md) section 11a and [CHANGELOG](CHANGELOG.md)).
 
 ## Index
 
@@ -15,6 +15,7 @@ MaskIT is a free, local-first tool that masks PII, PHI, financial data and secre
 | [MAINTENANCE.md](MAINTENANCE.md) | Owner, maintainers | How do I set up, run, test, release and keep this project healthy? |
 | [USER_GUIDE.md](USER_GUIDE.md) | End users | How do I install and use MaskIT? What are its limits? |
 | [THREAT_MODEL.md](THREAT_MODEL.md) | Security reviewers | What are we protecting, from whom, and how? |
+| [BENCHMARKS.md](BENCHMARKS.md) | Everyone | How accurate is detection, measured how, and what does it miss? (generated file) |
 | [GLOSSARY.md](GLOSSARY.md) | Everyone | What do PII, PHI, NER, Safe Harbor, etc. mean? |
 | [INTERVIEW_GUIDE.md](INTERVIEW_GUIDE.md) | Owner | What might an interviewer ask about this project, and how do I answer? |
 

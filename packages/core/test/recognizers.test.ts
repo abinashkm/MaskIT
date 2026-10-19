@@ -27,10 +27,20 @@ describe("phone", () => {
     ]);
   });
   it("needs context for bare digit runs", () => {
-    expect(found("order 4155552671 shipped", "PHONE")).toHaveLength(1); // found at low confidence
-    const text = "order 4155552671 shipped";
+    const text = "noted 4155552671 today";
+    expect(found(text, "PHONE")).toHaveLength(1); // found at low confidence (strict only)
     expect(analyze(text, { level: "standard" })).toEqual([]);
     expect(analyze("phone: 4155552671", { level: "standard" })).toHaveLength(1);
+  });
+  it("ignores numbers labeled as orders, invoices, tickets and the like", () => {
+    expect(found("order 4155552671 shipped", "PHONE")).toEqual([]);
+    expect(found("Invoice no. 4155552671", "PHONE")).toEqual([]);
+    expect(found("tracking: 4155552671", "PHONE")).toEqual([]);
+  });
+  it("does not take IP addresses, MAC addresses or UUID pieces for phones", () => {
+    expect(found("host 38.26.148.177", "PHONE")).toEqual([]);
+    expect(found("mac 53-29-26-68-07-58", "PHONE")).toEqual([]);
+    expect(found("id 89268724-1506-5e3c-267c-5077584d9283", "PHONE")).toEqual([]);
   });
   it("does not treat dates as phones", () => {
     expect(found("on 2024-03-15 12", "PHONE")).toEqual([]);
@@ -162,5 +172,37 @@ describe("contact details", () => {
   });
   it("ignores stop words after labels", () => {
     expect(found("Dear Customer, thanks", "PERSON")).toEqual([]);
+  });
+});
+
+// Regressions found by the accuracy benchmark (packages/bench).
+describe("benchmark regressions", () => {
+  it("an IBAN wins over a chance Luhn match inside its digits", () => {
+    const text = "Account GB11NWBK33354764468114 ok";
+    const types = analyze(text, { level: "strict" }).map((f) => f.entityType);
+    expect(types).toEqual(["IBAN"]);
+    expect(
+      analyze("Account GB54 NWBK 0507 6274 3072 19 ok", { level: "strict" }).map(
+        (f) => f.entityType,
+      ),
+    ).toEqual(["IBAN"]);
+  });
+  it("labels addresses as IP or MAC, not phone", () => {
+    expect(analyze("from 38.26.148.177", { level: "strict" }).map((f) => f.entityType)).toEqual([
+      "IP_ADDRESS",
+    ]);
+    expect(analyze("mac 53-29-26-68-07-58", { level: "strict" }).map((f) => f.entityType)).toEqual([
+      "MAC_ADDRESS",
+    ]);
+  });
+  it("does not read a version number as an IP address", () => {
+    expect(found("Version 7.5.3.7 of the library", "IP_ADDRESS")).toEqual([]);
+    expect(found("released as v1.2.3.4", "IP_ADDRESS")).toEqual([]);
+    expect(found("server 7.5.3.7", "IP_ADDRESS")).toEqual(["7.5.3.7"]);
+  });
+  it("stops a name before the next clause", () => {
+    expect(found("Name: Priya Khan Thanks", "PERSON")).toEqual(["Priya Khan"]);
+    expect(found("Patient: Jane Doe Phone: 555", "PERSON")).toEqual(["Jane Doe"]);
+    expect(found("Client: Liam Khan Please confirm", "PERSON")).toEqual(["Liam Khan"]);
   });
 });

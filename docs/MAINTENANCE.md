@@ -38,7 +38,7 @@ pnpm install
 | Build extension | `pnpm --filter @maskit/extension build` (output in `packages/extension/dist`) |
 | Build everything | `pnpm build` |
 | Run E2E tests **(planned)** | `pnpm e2e` |
-| Run benchmarks **(planned)** | `pnpm bench` |
+| Run benchmarks and refresh `docs/BENCHMARKS.md` | `pnpm --filter @maskit/bench bench` (commit the regenerated file; the test suite fails if it is stale) |
 
 ## 4. Loading the extension locally
 1. Build: `pnpm --filter @maskit/extension build`.
@@ -62,8 +62,14 @@ Record results and any selector fixes in CHANGELOG.
 2. Add validation (checksum/structure) in `validators.ts` if the format allows it.
 3. Register it in `recognizers/index.ts`, add its type to the right levels in `levels.ts`, and give it a slot in `ENTITY_PRIORITY` in `resolver.ts`.
 4. Write tests: valid samples, invalid samples, near-misses, text with the value embedded.
-5. Add it to the benchmark dataset **(planned)**.
+5. Add a generator for it in `packages/bench/src/generators.ts` (and the type to the list of expected types in `bench.test.ts` if the count changes), run `pnpm --filter @maskit/bench bench`, and commit the refreshed `docs/BENCHMARKS.md`.
 6. Update CHANGELOG, ARCHITECTURE (if behavior changed) and USER_GUIDE (coverage table).
+
+## 5c. Reading and acting on benchmark results
+- Open `docs/BENCHMARKS.md`. Look first at the false-positive table and at any type below 100%.
+- To see failing examples, write a throwaway script in `packages/bench/src/` that runs `analyze` on each generated case and prints mismatches (the first run of this project did exactly that), fix the recognizer, add a regression test in core, then regenerate the report. Delete the script afterwards.
+- If you tune a recognizer against the benchmark, the score will look perfect. Add new, different cases (new formats, new surrounding text) so the benchmark keeps finding problems instead of confirming old fixes.
+- Real-document accuracy is still unmeasured. A good next step is to hand-label 50-100 real, non-sensitive or consented documents and add them as a second dataset.
 
 ## 5a. Adding a new file format
 1. Add a handler in `packages/files/src/` that takes bytes, masks text through `maskString` / `replacementFor` (never its own detection) and returns bytes.

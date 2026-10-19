@@ -1,9 +1,10 @@
 import type { Finding, Recognizer } from "../types.js";
 import { ipv4Valid, ipv6Valid } from "../validators.js";
-import { finding } from "./util.js";
+import { finding, precededBy } from "./util.js";
 
 const IPV4_RE = /(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d]|\.\d)/g;
 const IPV6_RE = /(?<![0-9a-fA-F:])(?:[0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}(?![0-9a-fA-F:])/g;
+const VERSION_CONTEXT_RE = /\b(?:version|ver|v|release|build|rev|revision|python|node)\.?\s*$/i;
 
 export const ipRecognizer: Recognizer = {
   id: "ip-address",
@@ -11,6 +12,8 @@ export const ipRecognizer: Recognizer = {
   analyze(text) {
     const out: Finding[] = [];
     for (const m of text.matchAll(IPV4_RE)) {
+      // "Version 7.5.3.7" has the same shape as an address; the word before it tells them apart.
+      if (precededBy(text, m.index, VERSION_CONTEXT_RE, 20)) continue;
       if (ipv4Valid(m[0]))
         out.push(finding("IP_ADDRESS", m.index, m.index + m[0].length, 0.85, "ip-address"));
     }

@@ -23,6 +23,7 @@ Rule: **front-ends never contain detection logic.** Anything about finding or ma
 packages/core/       detection + masking engine (implemented)
 packages/extension/  Manifest V3 extension (content script, popup)
 packages/files/      file format handlers: CSV, DOCX, text (implemented)
+packages/bench/      accuracy benchmark and CI guard (implemented)
 packages/web/        static web app (React + Vite) (implemented)
 packages/cli/        batch CLI (later)
 docs/                all documentation
@@ -72,7 +73,7 @@ AI reply -> Restorer uses Mapping -> original values back (local only)
 3. **NER (optional):** quantized ONNX model in a Web Worker for names, organizations, locations. Loaded only if the user enables it.
 
 ### 3.4 Overlap resolution
-When two findings overlap, the higher-priority entity type wins, then the higher confidence, then the longer span. Example: a string detected as both a phone number and a generic number resolves to phone.
+When two findings overlap, the higher-priority entity type wins, then the higher confidence, then the longer span. Priority follows how strong the validation is: values with a strong checksum or structure (secrets, IBAN with mod-97, card with Luhn, IP and MAC) beat looser shapes (phone, date). Example: digits inside an IBAN can pass the Luhn check by chance, so the IBAN must outrank the card or it would be lost.
 
 ### 3.5 Masking styles
 Token (default), full redaction, generalization (date to year), synthetic replacement.
@@ -91,6 +92,9 @@ A static React + Vite page. It imports `@maskit/core` and holds one `MaskSession
 | `mask.ts` | Shared helpers: mask a string, count findings, create replacement tokens |
 
 PDF is handled in the web app only (`packages/web/src/pdf.ts`) because pdf.js needs a browser: it extracts text, then the text goes through `maskFile` as a `.txt`. The UI is `FilePanel.tsx`. All of it shares the app's `MaskSession`.
+
+## 3d. Benchmark package (implemented, `packages/bench`)
+Not shipped to users. It generates labeled cases from a fixed seed, runs `analyze`, and scores precision, recall and false positives per entity type. Its test acts as an accuracy guard in CI, and it writes `docs/BENCHMARKS.md`.
 
 ## 4. Chrome extension (implemented, `packages/extension`; not yet verified on live sites)
 - **Content script (`content.ts`):** attached to the four supported hosts. Catches Enter and Send clicks in the capture phase, calls the engine through `guard.ts`, shows the review dialog, and holds the `MaskSession`.

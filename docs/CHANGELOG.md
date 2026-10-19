@@ -15,6 +15,25 @@ Every change is recorded here: **what** changed, **where** it lives, and **how i
 
 ---
 
+### 2026-10-19: Accuracy benchmark, and six recognizer fixes it exposed (start of Phase 4)
+- **What:** A reproducible benchmark that scores every entity type for precision and recall, measures false positives on ordinary text, and lists known gaps. Its first run found real bugs, which are fixed.
+- **Where:**
+  - New package `packages/bench/` (`src/rng.ts` seeded generator, `src/generators.ts` labeled cases, `src/evaluate.ts` scoring, `src/report.ts` markdown writer, `test/bench.test.ts` CI guard). Output: `docs/BENCHMARKS.md` (generated, do not edit by hand).
+  - Fixes in `packages/core/src/resolver.ts`, `recognizers/contact.ts`, `recognizers/network.ts`; new tests in `packages/core/test/recognizers.test.ts` ("benchmark regressions").
+- **How the benchmark works:** 200 generated sentences per entity type (19 types) with the labeled value's position recorded; card, IBAN and routing numbers get valid checksums; the seed is fixed so results are identical every run. A finding counts as correct when the type matches and the span overlaps the label with IoU of at least 0.5. "Masked at all" ignores the label and asks only whether the value was covered, which is what matters for privacy. 450 lines of ordinary text (code, version numbers, invoice and order numbers, times, hashes, UUIDs, SQL, prose) measure false positives per level. A separate "known gaps" set (unlabeled names, bare SSN digits, unlabeled DOB, non-US addresses, bare phone digits) shows what the rules are not expected to catch. `pnpm --filter @maskit/bench bench` regenerates the report.
+- **First run (before fixes):** overall precision 96.1%, recall 96.1%. Per type: IP address recall 38.5%, IBAN recall 88.5%, phone precision 61.7%, credit card precision 89.7%. On ordinary text: 6.9% of lines wrongly flagged at standard, 13.6% at strict.
+- **Bugs found and fixed:**
+  1. **IBAN lost to credit card.** A run of digits inside an IBAN passes the Luhn check by chance about 1 time in 10, and the card priority beat the IBAN, so the IBAN was missed. IBAN priority is now above credit card (mod-97 is a much stronger check).
+  2. **IP and MAC addresses labeled as phone numbers.** The phone pattern matched `38.26.148.177` and `53-29-26-68-07-58`, and phone priority beat them. The phone recognizer now skips valid IPv4 and MAC shapes, and IP/MAC priority is above phone.
+  3. **Names ran into the next sentence** ("Priya Khan Thanks"). A name now stops at words that start a new clause or field (Thanks, Please, Phone, DOB and similar).
+  4. **Version numbers read as IP addresses** ("Version 7.5.3.7"). An IPv4-shaped string right after "version", "v", "release", "build" and similar is now ignored.
+  5. **Order, invoice, tracking and ticket numbers read as phones** at the strict level. A bare digit run right after such a label is now ignored unless a phone word is also nearby.
+  6. **UUID fragments read as phones** ("89268724-1506-..."). A phone candidate may no longer be immediately followed by a hyphen and another character.
+- **After fixes:** 100% on the synthetic set and no false positives on the ordinary-text lines. This is a result of tuning against the same data, so it shows "no known regressions", not real-world accuracy. The report says so at the top.
+- **Why:** Plans promised published precision and recall; finding bugs before users do (D-018).
+- **Tests:** 23 benchmark tests: per-type floors (precision and recall at least 95%, masked-at-all at least 99%), overall at least 97%, at most 2% false positives on ordinary text, and a check that `docs/BENCHMARKS.md` matches a fresh run (so a recognizer change cannot be committed without refreshing the numbers). Six regression tests in core for the bugs above. Total across the repo: 122 tests.
+- **Docs updated:** CHANGELOG, PLAN, MAINTENANCE, DECISIONS (D-018), ARCHITECTURE, USER_GUIDE, INTERVIEW_GUIDE, docs/README, new docs/BENCHMARKS.md.
+
 ### 2026-10-19: File masking (Phase 3)
 - **What:** Mask files, not just pasted text: TXT, MD, LOG, JSON, CSV, TSV, DOCX, and PDF (as text). New "Mask a file" panel in the web app with summary, warnings, preview and download.
 - **Where:**
