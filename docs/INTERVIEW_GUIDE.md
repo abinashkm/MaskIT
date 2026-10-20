@@ -107,6 +107,21 @@ No. Compliance is a legal status for an organization's whole process. I say it s
 
 ---
 
+**Q: How does the name model work, and does it break the "nothing leaves your device" promise?**
+It is a small neural network (DistilBERT fine-tuned for named-entity recognition, about 66 MB) that runs in the browser on WebAssembly. The file is packaged with the app, loaded from the app's own origin, and remote loading is switched off in the library. The page's security policy allows only its own origin, and browser tests record every request to show nothing leaves. It is optional; without it everything still works with the rules.
+
+**Q: Why not just rely on the model for everything?**
+Rules are exact and explainable for structured data (a card number either passes Luhn or not), and the model is probabilistic and noisy on short informal text. Combining them, with one shared set of level and overlap rules, gives better results than either.
+
+**Q: How do you handle the model being asynchronous when a send must be blocked immediately?**
+In the extension I pre-check the prompt in the background when typing pauses and cache the result for that exact text. At send time a cached answer is instant. If the user sends too quickly, I hold the send, wait for the model with a timeout, then either show the review dialog or send for them.
+
+**Q: How do you handle scanned documents?**
+Optional OCR (tesseract.js) in the browser. Scanned PDFs are drawn onto canvases page by page, recognized, then masked as text. It is English only, can misread, and says so on every result.
+
+**Q: What would you do next?**
+Check signed-in sites and real Office files, build a small hand-labeled set of real consented documents to measure true accuracy, then publish to the Chrome Web Store.
+
 ## 6. Testing and quality
 **Q: How do you test this?**
 Unit tests per recognizer (valid, invalid, near-miss, embedded), false-positive tests on code/logs/prose, Playwright E2E tests on mocked chat pages, a no-network test, and benchmark runs.
@@ -162,18 +177,25 @@ Keep the core free; offer a paid team policy/management and support tier. (Not p
 ---
 
 ## 9. Quick facts cheat sheet
-- Stack: TypeScript, React, Vite, Vitest, Playwright, MV3, pnpm.
-- Layers: patterns -> context -> optional NER.
-- Levels: Basic, Standard (default), Strict, Custom.
-- Mask style: reversible consistent tokens.
-- Privacy: no backend, no telemetry, session-only mapping.
+- Stack: TypeScript, React, Vite, Vitest, Playwright, Manifest V3, pnpm workspaces, esbuild, transformers.js (ONNX), pdf.js, tesseract.js, fflate.
+- Packages: core (engine), ner (name model), files (formats), web, extension, bench, e2e.
+- Detection layers: validated patterns -> context rules -> optional on-device name model.
+- Levels: Basic, Standard (default), Strict (HIPAA Safe Harbor style), plus custom words.
+- Mask style: reversible consistent tokens, or irreversible `[REDACTED]`.
+- Files: text, CSV, DOCX, XLSX, PDF (as text), scans and images through OCR.
+- Privacy: no backend, no telemetry, session-only mapping, same-origin policy, model and OCR files packaged; browser tests record every request.
+- Numbers (all synthetic or author-labeled; real accuracy unmeasured): generated set 100%; hand-written set about 81% with rules, about 97% with the name model at the default level; false positives on ordinary text 0 of 450.
+- Tests: about 200 (154 unit and benchmark tests plus 47 in real Chromium).
 - Standards referenced: HIPAA Safe Harbor (18 identifiers), GDPR, PCI-DSS.
-- Phases: Setup -> MVP -> Extension -> Files -> NER/OCR/benchmarks.
-- Honest limits: not 100% detection, not a compliance certificate.
+- Phases done: Setup -> MVP -> Extension -> Files -> benchmarks, name model, OCR, store preparation.
+- Honest limits: not 100% detection, English only for names and OCR, not a compliance certificate, signed-in sites and real Office files not yet checked.
 
 ## 10. Your own notes (fill in as you build)
+- Testing story (second strong one): unit tests with a mock DOM all passed, but real Chromium found bugs the mocks hid: the live preview created tokens in the shared mapping on every keystroke (numbers drifted and half-typed emails were saved), a plain textarea lost focus after masking so Enter did nothing, and the real ChatGPT page used a different composer than my selectors expected. I tested the extension against pages built on the real ProseMirror and Quill libraries served at the real hostnames via request interception, and spot-checked the logged-out Gemini and ChatGPT pages. I can also say what is not verified: signed-in layouts, and Claude (Cloudflare blocked automation).
+- Concurrency story: the name model lives in an offscreen page. With several AI tabs open, turning the option on made every tab ask the service worker for the single allowed offscreen page at once; the extras failed and those tabs marked the model unavailable. I only found it because a test ran after many tabs were open. Fix: one shared creation promise plus retries, and a test.
+- Model story: rules alone found about 81% on my hand-written set; adding a 66 MB on-device NER model raised it to about 97%. I chose DistilBERT NER because of size and licence, wrote an aligner because the model returns word pieces without offsets, and added generic filters after seeing it tag "Call" and "Hi" as names. I report that the filters were tuned on the same set, so the number is optimistic.
 - Interesting bug I fixed: a URL like `?token=abc123&b=2` was reported as a generic SECRET with the value `abc123&b=2`, hiding the more specific URL_CREDENTIALS finding. The keyword recognizer's value pattern did not stop at `&`, and the resolver's priority put SECRET above URL_CREDENTIALS. I excluded `&` from the value and raised URL_CREDENTIALS priority. Lesson: overlap rules need tests with realistic strings.
-- Metric I'm proud of: 51 tests including a 130 KB input in under 2 s and a test that fails if the engine ever calls `fetch`.
+- Metric I'm proud of: about 200 automated tests (154 unit and benchmark tests plus 47 in real Chromium), including tests that fail if any request leaves the site, if the extension source ever uses `fetch` or the synced storage, or if the benchmark report is stale.
 - Something I learned: checksums (Luhn, mod-97, ABA) remove most false positives for structured IDs; free-text names are the hard part and need context rules or NER.
 - A decision I changed and why: I first planned to store settings in `chrome.storage.sync` for convenience, then realized it uploads custom words to the user's Google account, which contradicts "nothing leaves your device". I switched to `storage.local` and added a test that fails if the synced store ever appears in the source.
 - Benchmark story (strong one for interviews): I built a seeded synthetic benchmark expecting to publish a good number. The first run showed 96% overall but also IP address recall of 38% and phone precision of 62%. Digging into failures found a real design flaw: the resolver ranked by type priority, and a chance Luhn match inside an IBAN outranked the IBAN. The principle I took away: priority should follow validation strength (mod-97 and checksums over loose shapes). I fixed six bugs, added regression tests, and then wrote down that the resulting 100% is tuned to its own data and proves nothing about real documents. Be ready to say what I would do next: hand-label real consented documents as a second dataset.

@@ -15,8 +15,9 @@ describe("privacy invariants", () => {
     },
   );
 
-  it("requests only the storage permission and only AI-site hosts", () => {
-    expect(manifest.permissions).toEqual(["storage"]);
+  it("requests only the storage and offscreen permissions and only AI-site hosts", () => {
+    // "offscreen" lets the extension keep the on-device name model in a hidden page of its own.
+    expect(manifest.permissions).toEqual(["storage", "offscreen"]);
     for (const host of manifest.host_permissions) {
       expect(host).toMatch(
         /^https:\/\/(chatgpt\.com|chat\.openai\.com|claude\.ai|gemini\.google\.com)\/\*$/,
@@ -25,13 +26,29 @@ describe("privacy invariants", () => {
     expect(JSON.stringify(manifest)).not.toContain("<all_urls>");
   });
 
-  it("blocks network access from extension pages", () => {
-    expect(manifest.content_security_policy.extension_pages).toContain("connect-src 'none'");
+  it("limits extension pages to their own files", () => {
+    const csp = manifest.content_security_policy.extension_pages;
+    expect(csp).toContain("connect-src 'self'"); // only the extension's own files
+    expect(csp).not.toMatch(/https?:|\*|'unsafe-eval'/);
   });
 
   it("never writes user text with innerHTML", () => {
     expect(sources.filter((s) => /innerHTML|outerHTML|insertAdjacentHTML/.test(s.text))).toEqual(
       [],
     );
+  });
+});
+
+describe("store requirements", () => {
+  it("ships every icon the manifest names, as real PNG files", () => {
+    const named = new Set([
+      ...Object.values(manifest.icons as Record<string, string>),
+      ...Object.values(manifest.action.default_icon as Record<string, string>),
+    ]);
+    expect(named.size).toBeGreaterThanOrEqual(4);
+    for (const rel of named) {
+      const file = readFileSync(new URL(`../${rel}`, import.meta.url));
+      expect([...file.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    }
   });
 });

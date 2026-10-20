@@ -27,7 +27,7 @@ export const secretRecognizer: Recognizer = {
 };
 
 const KEYWORD_VALUE_RE =
-  /\b(password|passwd|pwd|passphrase|secret|api[_ -]?key|access[_ -]?token|auth[_ -]?token|token)\b\s*(?:is\s+|[:=]\s*)["']?([^\s"',;&]{4,})/dgi;
+  /\b(password|passwd|pwd|passphrase|secret|api[_ -]?key|access[_ -]?token|auth[_ -]?token|token)\b["']?\s*(?:is\s+|[:=]\s*)["']?([^\s"',;]{4,})/dgi;
 
 export const credentialRecognizer: Recognizer = {
   id: "credential-keyword",
@@ -35,8 +35,14 @@ export const credentialRecognizer: Recognizer = {
   analyze(text) {
     const out: Finding[] = [];
     for (const m of text.matchAll(KEYWORD_VALUE_RE)) {
-      const span = groupSpan(m, 2);
+      let span = groupSpan(m, 2);
       if (!span) continue;
+      // In a URL query string "&" separates parameters; in a password it is just a character.
+      if (/[?&]/.test(text[m.index - 1] ?? "")) {
+        const cut = (m[2] ?? "").indexOf("&");
+        if (cut >= 4) span = [span[0], span[0] + cut];
+        else if (cut >= 0) continue;
+      }
       const isPassword = /^pass|^pwd/i.test(m[1] ?? "");
       out.push(
         finding(isPassword ? "PASSWORD" : "SECRET", span[0], span[1], 0.85, "credential-keyword"),

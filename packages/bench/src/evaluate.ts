@@ -1,5 +1,14 @@
-import { analyze, type EntityType, type Finding, type MaskLevel } from "@maskit/core";
+import {
+  analyze,
+  analyzeAsync,
+  enabledEntityTypes,
+  type Detector,
+  type EntityType,
+  type Finding,
+  type MaskLevel,
+} from "@maskit/core";
 import { GENERATORS, HARD_GENERATORS, negatives, type Case, type Gold } from "./generators.js";
+import { realisticCases } from "./realistic.js";
 import { Rng } from "./rng.js";
 
 export const SEED = 20261019;
@@ -156,5 +165,114 @@ export function runBenchmark(): Report {
     },
     hard,
     negatives: negs,
+  };
+}
+
+// ---------- hand-written realistic set ----------
+
+export interface RealisticReport {
+  level: MaskLevel;
+  docs: number;
+  gold: number;
+  perType: TypeScore[];
+  overall: { precision: number; recall: number; f1: number; covered: number };
+  misses: { type: EntityType; value: string }[];
+  falseAlarms: { type: EntityType; value: string }[];
+}
+
+export function runRealistic(level: MaskLevel): RealisticReport {
+  const cases = realisticCases();
+  return scoreRealistic(
+    level,
+    cases,
+    cases.map((c) => analyze(c.text, { level })),
+  );
+}
+
+/** Same set, with extra asynchronous detectors such as the on-device NER model. */
+export async function runRealisticWith(
+  level: MaskLevel,
+  detectors: Detector[],
+): Promise<RealisticReport> {
+  const cases = realisticCases();
+  const found: Finding[][] = [];
+  for (const c of cases) found.push(await analyzeAsync(c.text, { level }, detectors));
+  return scoreRealistic(level, cases, found);
+}
+
+function scoreRealistic(
+  level: MaskLevel,
+  cases: Case[],
+  allFindings: Finding[][],
+): RealisticReport {
+  const enabled = enabledEntityTypes({ level });
+  const scores = new Map<EntityType, TypeScore>();
+  const get = (type: EntityType): TypeScore => {
+    let s = scores.get(type);
+    if (!s) {
+      s = { type, tp: 0, fp: 0, fn: 0, covered: 0, total: 0 };
+      scores.set(type, s);
+    }
+    return s;
+  };
+  const misses: RealisticReport["misses"] = [];
+  const falseAlarms: RealisticReport["falseAlarms"] = [];
+  let goldCount = 0;
+
+  for (const [ci, c] of cases.entries()) {
+    // Only judge values the level is supposed to mask (e.g. plain dates only at strict).
+    const gold = c.gold.filter((g) => enabled.has(g.type));
+    goldCount += gold.length;
+    const findings = allFindings[ci] ?? [];
+    const used = new Set<number>();
+    for (const f of findings) {
+      const idx = gold.findIndex(
+        (g, i) => !used.has(i) && g.type === f.entityType && iou(g, f) >= 0.5,
+      );
+      if (idx >= 0) {
+        used.add(idx);
+        get(f.entityType).tp++;
+      } else {
+        get(f.entityType).fp++;
+        falseAlarms.push({ type: f.entityType, value: c.text.slice(f.start, f.end) });
+      }
+    }
+    gold.forEach((g, i) => {
+      const s = get(g.type);
+      s.total++;
+      if (!used.has(i)) {
+        s.fn++;
+        misses.push({ type: g.type, value: c.text.slice(g.start, g.end) });
+      }
+      if (findings.some((f) => coverage(g, f) >= 0.5)) s.covered++;
+    });
+  }
+
+  const perType = [...scores.values()].sort((a, b) => a.type.localeCompare(b.type));
+  const sum = perType.reduce(
+    (a, s) => ({
+      tp: a.tp + s.tp,
+      fp: a.fp + s.fp,
+      fn: a.fn + s.fn,
+      covered: a.covered + s.covered,
+      total: a.total + s.total,
+    }),
+    { tp: 0, fp: 0, fn: 0, covered: 0, total: 0 },
+  );
+  const precision = ratio(sum.tp, sum.tp + sum.fp);
+  const recall = ratio(sum.tp, sum.tp + sum.fn);
+  return {
+    level,
+    docs: cases.length,
+    gold: goldCount,
+    perType,
+    overall: {
+      precision,
+      recall,
+      f1: ratio(2 * precision * recall, precision + recall),
+      covered: ratio(sum.covered, sum.total),
+    },
+    misses,
+    falseAlarms,
   };
 }

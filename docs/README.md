@@ -2,7 +2,7 @@
 
 MaskIT is a free, local-first tool that masks PII, PHI, financial data and secrets before you send text or documents to AI tools. Nothing leaves your browser.
 
-**Project status:** core engine (`packages/core`), file masking (`packages/files`), web app (`packages/web`) and Chrome extension (`packages/extension`) are implemented; none has been checked by hand in a browser yet. A synthetic accuracy benchmark exists ([BENCHMARKS.md](BENCHMARKS.md)); real-world accuracy is unmeasured. NER, OCR and the Chrome Web Store listing are next (see [PLAN](PLAN.md) section 11a and [CHANGELOG](CHANGELOG.md)).
+**Project status:** feature-complete for the first release and tested in real Chromium: core engine, optional on-device name model, file masking (text, CSV, DOCX, XLSX, PDF, OCR), web app, Chrome extension. Not yet done: signed-in checks on the real AI sites, checks with real Office files, a real-document accuracy set, and the Chrome Web Store submission (see [PLAN](PLAN.md) section 11a).
 
 ## Index
 
@@ -16,6 +16,9 @@ MaskIT is a free, local-first tool that masks PII, PHI, financial data and secre
 | [USER_GUIDE.md](USER_GUIDE.md) | End users | How do I install and use MaskIT? What are its limits? |
 | [THREAT_MODEL.md](THREAT_MODEL.md) | Security reviewers | What are we protecting, from whom, and how? |
 | [BENCHMARKS.md](BENCHMARKS.md) | Everyone | How accurate is detection, measured how, and what does it miss? (generated file) |
+| [BENCHMARKS-NER.md](BENCHMARKS-NER.md) | Everyone | How much does the on-device name model help? (generated file, needs the model) |
+| [PRIVACY_POLICY.md](PRIVACY_POLICY.md) | Users, store reviewers | What data is handled and what is never collected? |
+| [STORE_LISTING.md](STORE_LISTING.md) | Owner | Everything to fill in when publishing to the Chrome Web Store |
 | [GLOSSARY.md](GLOSSARY.md) | Everyone | What do PII, PHI, NER, Safe Harbor, etc. mean? |
 | [INTERVIEW_GUIDE.md](INTERVIEW_GUIDE.md) | Owner | What might an interviewer ask about this project, and how do I answer? |
 

@@ -79,11 +79,15 @@ export function hintForHeader(header: string): EntityType | undefined {
   return HEADER_HINTS.find(([re]) => re.test(key))?.[1];
 }
 
-export function maskCsv(
+/** The model is only worth asking about cells that read like text, not codes or single words. */
+const looksLikeText = (cell: string) => cell.length >= 8 && /\p{L}+\s+\p{L}+/u.test(cell);
+const MAX_MODEL_CELLS = 1500;
+
+export async function maskCsv(
   text: string,
   options: FileMaskOptions,
   tally: Tally,
-): { text: string; delimiter: Delimiter } {
+): Promise<{ text: string; delimiter: Delimiter; warnings: string[] }> {
   const delimiter = detectDelimiter(text);
   const eol = text.includes("\r\n") ? "\r\n" : "\n";
   const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text; // drop a byte order mark
@@ -97,18 +101,36 @@ export function maskCsv(
     return hint && enabled.has(hint) ? hint : undefined;
   });
 
-  const masked = rows.map((row, r) =>
-    row.map((cell, c) => {
-      if (r === 0 || cell.trim() === "") return cell; // keep the header row readable
+  const rulesOnly: FileMaskOptions = { ...options, detectors: [] };
+  const warnings: string[] = [];
+  let modelCells = 0;
+  const masked: string[][] = [];
+  for (const [r, row] of rows.entries()) {
+    const outRow: string[] = [];
+    for (const [c, cell] of row.entries()) {
+      if (r === 0 || cell.trim() === "") {
+        outRow.push(cell); // keep the header row readable
+        continue;
+      }
       const hint = hints[c];
       if (hint) {
         bump(tally, hint);
-        return options.style === "redact"
-          ? "[REDACTED]"
-          : replacementFor(hint, cell.trim(), options);
+        outRow.push(
+          options.style === "redact" ? "[REDACTED]" : replacementFor(hint, cell.trim(), options),
+        );
+        continue;
       }
-      return maskString(cell, options, tally);
-    }),
-  );
-  return { text: stringifyCsv(masked, delimiter, eol), delimiter };
+      const useModel = !!options.detectors?.length && looksLikeText(cell);
+      if (useModel && modelCells >= MAX_MODEL_CELLS && !warnings.length) {
+        warnings.push(
+          `Name detection was applied to the first ${MAX_MODEL_CELLS} text cells only; later cells were checked by the pattern rules alone.`,
+        );
+      }
+      const withModel = useModel && modelCells < MAX_MODEL_CELLS;
+      if (withModel) modelCells++;
+      outRow.push(await maskString(cell, withModel ? options : rulesOnly, tally));
+    }
+    masked.push(outRow);
+  }
+  return { text: stringifyCsv(masked, delimiter, eol), delimiter, warnings };
 }

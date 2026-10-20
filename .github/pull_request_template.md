@@ -1,7 +1,9 @@
 ## Summary
+
 <!-- What and why -->
 
 ## Docs checklist (required)
+
 - [ ] `docs/CHANGELOG.md` entry added (what / where / how it works / why / tests)
 - [ ] `docs/DECISIONS.md` updated if a non-obvious choice was made
 - [ ] `docs/ARCHITECTURE.md` updated if structure or data flow changed
@@ -11,4 +13,5 @@
 - [ ] Items still unbuilt are marked **(planned)**
 
 ## Tests
+
 <!-- What covers this change -->

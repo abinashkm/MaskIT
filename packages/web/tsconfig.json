@@ -8,7 +8,8 @@
     "baseUrl": ".",
     "paths": {
       "@maskit/core": ["../core/src/index.ts"],
-      "@maskit/files": ["../files/src/index.ts"]
+      "@maskit/files": ["../files/src/index.ts"],
+      "@maskit/ner/align": ["../ner/src/align.ts"]
     }
   },
   "include": ["src", "vite.config.ts"]

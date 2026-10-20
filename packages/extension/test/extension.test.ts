@@ -58,6 +58,16 @@ describe("editor", () => {
     expect(readText(ta)).toBe("new [EMAIL_1]");
     expect(onInput).toHaveBeenCalledOnce();
   });
+  it("gives focus back to a textarea after writing, so the next key lands in it", () => {
+    const ta = document.createElement("textarea");
+    document.body.append(ta);
+    const other = document.createElement("button");
+    document.body.append(other);
+    other.focus();
+    writeText(ta, "masked [EMAIL_1]");
+    expect(document.activeElement).toBe(ta);
+    expect(ta.selectionStart).toBe("masked [EMAIL_1]".length);
+  });
   it("reports failure when a rich editor rejects the edit", () => {
     const div = document.createElement("div");
     div.contentEditable = "true";
@@ -123,6 +133,7 @@ describe("normalizeSettings", () => {
       enabled: true,
       level: "standard",
       customTerms: ["ok"],
+      names: false,
     });
   });
   it("keeps valid values", () => {
@@ -130,6 +141,42 @@ describe("normalizeSettings", () => {
       enabled: false,
       level: "strict",
       customTerms: ["x"],
+      names: false,
     });
+  });
+});
+
+describe("ExtNer (page side of the name model)", () => {
+  const stubChrome = (sendMessage: (m: unknown) => Promise<unknown>) => {
+    (globalThis as unknown as { chrome: unknown }).chrome = { runtime: { sendMessage } };
+  };
+
+  it("turns model tokens from the offscreen page into findings", async () => {
+    const { ExtNer } = await import("../src/extNer");
+    stubChrome(async () => ({
+      ok: true,
+      tokens: [
+        { entity: "B-PER", score: 0.99, word: "Priya" },
+        { entity: "I-PER", score: 0.98, word: "Nair" },
+      ],
+    }));
+    const findings = await new ExtNer().detect("Met Priya Nair today");
+    expect(
+      findings.map((f) => [f.entityType, "Met Priya Nair today".slice(f.start, f.end)]),
+    ).toEqual([["PERSON", "Priya Nair"]]);
+  });
+  it("reports unavailable when the model cannot be loaded, without throwing", async () => {
+    const { ExtNer } = await import("../src/extNer");
+    stubChrome(async () => ({ ok: false, error: "no model" }));
+    expect(await new ExtNer().init()).toBe(false);
+    stubChrome(async () => {
+      throw new Error("no receiver");
+    });
+    expect(await new ExtNer().init()).toBe(false);
+  });
+  it("surfaces model errors so the caller can fall back to the rules", async () => {
+    const { ExtNer } = await import("../src/extNer");
+    stubChrome(async () => ({ ok: false, error: "boom" }));
+    await expect(new ExtNer().detect("Priya")).rejects.toThrow("boom");
   });
 });

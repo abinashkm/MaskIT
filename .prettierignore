@@ -3,3 +3,6 @@ dist
 coverage
 pnpm-lock.yaml
 docs
+models
+public
+test-results

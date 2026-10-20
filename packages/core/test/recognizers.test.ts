@@ -206,3 +206,23 @@ describe("benchmark regressions", () => {
     expect(found("Client: Liam Khan Please confirm", "PERSON")).toEqual(["Liam Khan"]);
   });
 });
+
+// Regressions found by the hand-written realistic set (packages/bench/src/realistic.ts).
+describe("realistic-set regressions", () => {
+  it("recognizes dotted and colon-terminated date-of-birth labels", () => {
+    expect(found("D.O.B.: 1988-05-12", "DATE_OF_BIRTH")).toEqual(["1988-05-12"]);
+    expect(found("d.o.b 12 May 1988", "DATE_OF_BIRTH")).toEqual(["12 May 1988"]);
+    expect(found("DOB: 03/15/1980", "DATE_OF_BIRTH")).toEqual(["03/15/1980"]);
+    expect(found("dobby 03/15/1980", "DATE_OF_BIRTH")).toEqual([]);
+  });
+  it("finds a password inside JSON and keeps symbols such as & in it", () => {
+    expect(found('{"password":"hunter42x"}', "PASSWORD")).toEqual(["hunter42x"]);
+    expect(found('{"api_key": "abcd1234efgh"}', "SECRET")).toEqual(["abcd1234efgh"]);
+    expect(found("password: Tr0ub4dor&3x ok", "PASSWORD")).toEqual(["Tr0ub4dor&3x"]);
+  });
+  it("still ends a URL query value at &", () => {
+    // The same value is also a generic secret; the more specific URL finding wins the overlap.
+    expect(found("https://x.com/a?token=abc123&b=2", "URL_CREDENTIALS")).toEqual(["abc123"]);
+    expect(found("https://x.com/a?token=abc123&b=2", "SECRET")).toEqual([]);
+  });
+});

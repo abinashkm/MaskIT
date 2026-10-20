@@ -177,3 +177,11 @@ a.button {
   font-weight: 600;
   text-decoration: none;
 }
+.check span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.check input {
+  width: auto;
+}

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ratio, runBenchmark } from "../src/evaluate.js";
+import { ratio, runBenchmark, runRealistic } from "../src/evaluate.js";
 import { renderMarkdown } from "../src/report.js";
 
 // The benchmark is deterministic (fixed seed), so these floors act as a regression guard:
@@ -41,5 +41,36 @@ describe("docs/BENCHMARKS.md", () => {
     const file = new URL("../../../docs/BENCHMARKS.md", import.meta.url);
     const onDisk = readFileSync(file, "utf8").replace(/\r\n/g, "\n");
     expect(onDisk).toBe(renderMarkdown(report));
+  });
+});
+
+describe("hand-written realistic set (rules only)", () => {
+  // Floors sit a little under the measured values so a real regression fails but noise does not.
+  it("keeps precision high and recall above the measured floor at the default level", () => {
+    const r = runRealistic("standard");
+    expect(r.overall.precision).toBeGreaterThanOrEqual(0.97);
+    expect(r.overall.recall).toBeGreaterThanOrEqual(0.78);
+  });
+  it("keeps strict-level numbers above their floors", () => {
+    const r = runRealistic("strict");
+    expect(r.overall.precision).toBeGreaterThanOrEqual(0.97);
+    expect(r.overall.recall).toBeGreaterThanOrEqual(0.74);
+  });
+  it("finds every structured identifier in the set", () => {
+    const r = runRealistic("strict");
+    for (const type of [
+      "EMAIL",
+      "PHONE",
+      "CREDIT_CARD",
+      "IBAN",
+      "US_SSN",
+      "SECRET",
+      "URL_CREDENTIALS",
+      "IP_ADDRESS",
+    ]) {
+      const s = r.perType.find((x) => x.type === type);
+      expect(s?.fn, type).toBe(0);
+      expect(s?.fp, type).toBe(0);
+    }
   });
 });

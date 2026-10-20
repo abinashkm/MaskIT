@@ -105,7 +105,7 @@ export const dateRecognizer: Recognizer = {
 };
 
 const DOB_CONTEXT_RE =
-  /\b(?:dob|d\.o\.b\.?|date of birth|birth ?date|birthday|born(?: on)?)\b[\s:=-]*$/i;
+  /\b(?:dob|d\.o\.b\.?|date of birth|birth ?date|birthday|born(?: on)?)(?![a-z])[\s:=-]*$/i;
 
 export const dobRecognizer: Recognizer = {
   id: "date-of-birth",

@@ -22,6 +22,9 @@ export function writeText(el: HTMLElement, text: string): boolean {
     // Use the native setter so frameworks that track `value` see the change.
     Object.getOwnPropertyDescriptor(proto.prototype, "value")?.set?.call(el, text);
     el.dispatchEvent(new Event("input", { bubbles: true }));
+    // The review dialog took focus; give it back so the next Enter or typing lands in the box.
+    el.focus();
+    el.setSelectionRange(text.length, text.length);
     return el.value === text;
   }
   el.focus();

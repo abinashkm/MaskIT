@@ -36,3 +36,10 @@
 | **Monorepo** | One repository holding several related packages. |
 | **ADR** | Architecture Decision Record: a short note on why a choice was made. |
 | **E2E test** | End-to-end test that drives the real UI. |
+| **Detector** | In MaskIT, an asynchronous source of findings (such as the name model) that plugs into the same pipeline as the rules. |
+| **Offscreen document** | A hidden page of a Chrome extension, used here to hold the large name model, because the extension's service worker cannot. |
+| **OCR** | Optical Character Recognition: reading text out of an image or a scanned page. |
+| **WebAssembly (wasm)** | A compact format that lets browsers run fast compiled code; the name model and OCR engine use it. |
+| **Request interception** | A test technique that answers a browser's request for a web address with local content, so tests can use real hostnames without the real site. |
+| **IoU** | Intersection over Union: how much two text spans overlap, used to decide whether a finding matches a labeled value. |
+| **Pre-check** | Running the name model on the prompt in the background while the user pauses typing, so the answer is ready when they press Enter. |

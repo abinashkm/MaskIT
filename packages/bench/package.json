@@ -7,10 +7,12 @@
     "build": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "bench": "tsx src/report.ts"
+    "bench": "tsx src/report.ts",
+    "bench:ner": "tsx src/ner-report.ts"
   },
   "dependencies": {
-    "@maskit/core": "workspace:*"
+    "@maskit/core": "workspace:*",
+    "@maskit/ner": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.19.2"

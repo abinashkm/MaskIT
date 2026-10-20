@@ -9,7 +9,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@maskit/core": "workspace:*"
+    "@maskit/core": "workspace:*",
+    "@maskit/ner": "workspace:*",
+    "@huggingface/transformers": "^3.3.3"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.287",

@@ -39,6 +39,13 @@ export interface Recognizer {
   analyze(text: string): Finding[];
 }
 
+/** An asynchronous source of findings, e.g. an on-device model. Must not use the network. */
+export interface Detector {
+  id: string;
+  entityTypes: EntityType[];
+  detect(text: string): Promise<Finding[]>;
+}
+
 export type MaskLevel = "basic" | "standard" | "strict" | "custom";
 
 /** token: reversible `[EMAIL_1]`; redact: irreversible `[REDACTED]`. */

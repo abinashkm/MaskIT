@@ -122,3 +122,17 @@ describe("false positives", () => {
     expect(analyze(text, { level: "standard" })).toEqual([]);
   });
 });
+
+describe("MaskSession.clone", () => {
+  it("previews without changing the original", () => {
+    const original = new MaskSession();
+    maskText("a@x.com", { level: "basic", session: original });
+    const copy = original.clone();
+    const preview = maskText("b@x.com and a@x.com", { level: "basic", session: copy });
+    expect(preview.masked).toBe("[EMAIL_2] and [EMAIL_1]");
+    expect(copy.size).toBe(2);
+    expect(original.size).toBe(1);
+    // The next real use continues from the original numbering.
+    expect(maskText("c@x.com", { level: "basic", session: original }).masked).toBe("[EMAIL_2]");
+  });
+});

@@ -1,5 +1,4 @@
 import {
-  analyze,
   applyMask,
   MaskSession,
   restoreText,
@@ -8,8 +7,10 @@ import {
   type MaskLevel,
   type MaskStyle,
 } from "@maskit/core";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { FilePanel } from "./FilePanel";
+import { WebNer } from "./nerClient";
+import { useFindings } from "./useFindings";
 
 const SAMPLE = `Patient: Jane Doe, DOB: 03/15/1980, MRN: 00482913
 Email jane.doe@example.com, phone (415) 555-2671
@@ -40,6 +41,8 @@ export function App() {
   const [copied, setCopied] = useState(false);
   // The mapping lives only in this component's memory; it is never stored or sent anywhere.
   const [session, setSession] = useState(() => new MaskSession());
+  // Bumped when the saved mapping changes, so the preview and the counter refresh.
+  const [mappingVersion, setMappingVersion] = useState(0);
 
   const customTerms = useMemo(
     () =>
@@ -49,11 +52,38 @@ export function App() {
         .filter(Boolean),
     [terms],
   );
-  const findings = useMemo(() => analyze(text, { level, customTerms }), [text, level, customTerms]);
+  // Optional on-device name model (off until the user turns it on).
+  const nerRef = useRef<WebNer>();
+  const [nerState, setNerState] = useState<"off" | "loading" | "on" | "unavailable">("off");
+  const [nerError, setNerError] = useState("");
+  const detector = nerState === "on" ? nerRef.current : undefined;
+  const { findings, busy } = useFindings(text, level, customTerms, detector);
+
+  async function toggleNer(enabled: boolean) {
+    if (!enabled) {
+      setNerState("off");
+      return;
+    }
+    setNerState("loading");
+    setNerError("");
+    try {
+      nerRef.current ??= new WebNer();
+      await nerRef.current.load();
+      setNerState("on");
+    } catch (e) {
+      nerRef.current?.dispose();
+      nerRef.current = undefined;
+      setNerError(e instanceof Error ? e.message : String(e));
+      setNerState("unavailable");
+    }
+  }
   const approved = useMemo(() => findings.filter((f) => !skipped.has(key(f))), [findings, skipped]);
+  // The preview runs on a scratch copy: typing must never save half-typed values in the
+  // real mapping. The mapping is saved only when the user uses the result (see `commit`).
   const masked = useMemo(
-    () => applyMask(text, approved, session, style),
-    [text, approved, session, style],
+    () => applyMask(text, approved, session.clone(), style),
+    // `mappingVersion` is listed so the preview renumbers after the mapping changes.
+    [text, approved, session, style, mappingVersion],
   );
 
   const counts = useMemo(() => {
@@ -70,7 +100,15 @@ export function App() {
     });
   }
 
+  /** Saves this result's tokens so replies can be restored later. */
+  function commit() {
+    if (style !== "token") return;
+    applyMask(text, approved, session, style);
+    setMappingVersion((v) => v + 1);
+  }
+
   async function copy() {
+    commit();
     try {
       await navigator.clipboard.writeText(masked);
       setCopied(true);
@@ -83,6 +121,7 @@ export function App() {
   function clearMapping() {
     session.clear();
     setSession(new MaskSession());
+    setMappingVersion((v) => v + 1);
     setRestored("");
   }
 
@@ -120,6 +159,24 @@ export function App() {
             <option value="token">Reversible tokens [EMAIL_1]</option>
             <option value="redact">Redact [REDACTED]</option>
           </select>
+        </label>
+        <label className="check">
+          <span>
+            <input
+              type="checkbox"
+              checked={nerState === "on" || nerState === "loading"}
+              disabled={nerState === "loading"}
+              onChange={(e) => void toggleNer(e.target.checked)}
+            />{" "}
+            Find names, organizations and places
+          </span>
+          <small>
+            {nerState === "loading" && "Loading the model (about 66 MB, from this site only)..."}
+            {nerState === "on" && (busy ? "Checking..." : "On. The model runs in your browser.")}
+            {nerState === "off" && "Optional on-device model for names without a label."}
+            {nerState === "unavailable" &&
+              `Not available: the model files are not installed on this site. ${nerError}`}
+          </small>
         </label>
         <label>
           Always mask these words (comma separated)
@@ -178,17 +235,28 @@ export function App() {
       <section>
         <h2>3. Masked text</h2>
         <p className="muted">{counts.map(([t, n]) => `${t} x${n}`).join(" · ") || "No changes"}</p>
-        <pre className="masked">{masked}</pre>
+        <pre className="masked" onCopy={commit}>
+          {masked}
+        </pre>
         <button onClick={copy}>{copied ? "Copied" : "Copy masked text"}</button>
       </section>
 
-      <FilePanel level={level} style={style} customTerms={customTerms} session={session} />
+      <FilePanel
+        level={level}
+        style={style}
+        customTerms={customTerms}
+        detectors={detector ? [detector] : []}
+        session={session}
+        onMapped={() => setMappingVersion((v) => v + 1)}
+      />
 
       {style === "token" && (
         <section>
           <h2>Restore the AI reply</h2>
           <p className="muted">
-            Paste a reply that contains tokens like [EMAIL_1] to put the real values back, locally.
+            Use the Copy button (or select and copy the masked text) so MaskIT remembers the values,
+            then paste an AI reply that contains tokens like [EMAIL_1] to put the real values back,
+            locally.
           </p>
           <textarea
             value={reply}
@@ -211,10 +279,10 @@ export function App() {
 
       <footer>
         <p>
-          Limits: no tool catches everything, so review before sending. Names are only detected
-          after labels such as &quot;Patient:&quot; or &quot;Dr.&quot; until the optional name model
-          ships. MaskIT supports HIPAA Safe Harbor-style de-identification; it is not a compliance
-          certification.
+          Limits: no tool catches everything, so review before sending. Without the optional name
+          model, names are only found after labels such as &quot;Patient:&quot; or &quot;Dr.&quot;;
+          the model is English only and can miss unusual names. OCR can misread scans. MaskIT
+          supports HIPAA Safe Harbor-style de-identification; it is not a compliance certification.
         </p>
       </footer>
     </main>

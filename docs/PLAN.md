@@ -33,7 +33,7 @@ MaskIT is a free, open-source, **local-first redaction tool for PII, PHI, financ
 ## 4. Detection pipeline (all local)
 1. **Pattern recognizers:** regex plus checksum validation (Luhn, IBAN mod-97, SSN rules) to cut false positives.
 2. **Context scoring:** nearby keywords ("Patient:", "DOB:", "MRN") raise or lower confidence (Presidio-style).
-3. **On-device NER (optional):** quantized ONNX model in a Web Worker via transformers.js or onnxruntime-web, for names, organizations and locations. Downloaded once at install, with no runtime network calls.
+3. **On-device NER (optional, built):** quantized DistilBERT model (about 66 MB) via transformers.js, in a Web Worker (web app) or an offscreen page (extension), for names, organizations and locations. Packaged with the app, with no runtime network calls (see ARCHITECTURE.md section 4).
 
 Each finding has: `type`, `start/end span`, `confidence`, `recognizer id`. Overlaps are resolved by priority and confidence.
 
@@ -51,7 +51,7 @@ Each finding has: `type`, `start/end span`, `confidence`, `recognizer id`. Overl
 
 ## 7. Product surfaces
 1. **Chrome extension (Manifest V3):** content script on ChatGPT, Claude, Gemini and similar. Intercepts paste and send, shows "N sensitive items found", and masks on approval. Popup for settings.
-2. **File masking:** TXT, DOCX, PDF (pdf.js), CSV/XLSX. Optional OCR (tesseract.js) for scans. Runs in workers.
+2. **File masking:** TXT, DOCX, PDF (pdf.js), CSV/XLSX. Optional OCR (tesseract.js) for scans, built (web app). Name and OCR engines run in workers; file masking itself still runs on the main thread **(planned: worker)**.
 3. **Standalone web app:** static site using the same engine, usable as a portfolio demo without installing anything.
 4. **CLI (later):** the same engine for batch use.
 
@@ -99,24 +99,29 @@ Stack: TypeScript, Vite, React, Vitest, Playwright, ESLint/Prettier, GitHub Acti
 | Phase | Status |
 |---|---|
 | 0. Setup | Done: monorepo, TypeScript, Vitest, ESLint, Prettier, CI workflow, MIT license |
-| 1. MVP | Done: engine (recognizers, levels, masking, restore, 51 tests) and web demo page. UI automated tests and a manual browser check are still open |
-| 2. Extension | Built and unit-tested (Chrome, MV3: ChatGPT, Claude, Gemini). Live-site verification, icons and Web Store listing are still open |
-| 3. Files | Built and unit-tested: TXT, MD, LOG, JSON, CSV/TSV, DOCX, PDF (as text). Browser check, real-world DOCX samples and XLSX are still open |
-| 4. NER, OCR, benchmarks, store listing | Started: benchmark suite and published numbers done (synthetic data only; see BENCHMARKS.md). NER, OCR, real-world test data, Web Store listing not started |
+| 1. MVP | Done: engine, web app, restore |
+| 2. Extension | Done and tested in real Chromium on mock pages with real editor libraries; spot-checked on the real logged-out Gemini and ChatGPT pages. **Open:** signed-in checks, Claude (blocked by a Cloudflare challenge for automated browsers) |
+| 3. Files | Done: text, CSV/TSV, DOCX, XLSX, PDF (as text), scanned PDF and images through OCR. **Open:** real-world Office files from Word, Excel, Google and LibreOffice |
+| 4. Accuracy and publishing | Done: generated and hand-written benchmarks (with CI guards), on-device name model in the web app, files and extension, OCR, icons, privacy policy, store listing draft, CI browser job. **Open:** real-document test set, Chrome Web Store submission (owner), CLI, per-finding review for files, moving file masking into a worker, non-English support |
 
-Details of each change are in [CHANGELOG.md](CHANGELOG.md).
+Details of each change are in [CHANGELOG.md](CHANGELOG.md). What is left, in order of value:
+1. Check the extension signed in on ChatGPT, Gemini and Claude (MAINTENANCE.md 4a) and fix selectors.
+2. Check real Office files and phone photos (MAINTENANCE.md 5b).
+3. Build a small hand-labeled set of real, consented documents to measure real accuracy.
+4. Submit to the Chrome Web Store (docs/STORE_LISTING.md).
+5. Nice to have: CLI, a per-finding review step for files, a worker for big files, other languages.
 
 ## 12. Risks and mitigations
 | Risk | Mitigation |
 |---|---|
-| Client-side NER less accurate and heavy (30-100 MB) | Make it optional; rules layer works alone |
+| Client-side NER less accurate and heavy (30-100 MB) | Optional; rules layer works alone; measured: about 66 MB, English only, see BENCHMARKS-NER.md |
 | AI site DOM changes break the extension | Isolate selectors in one adapter per site; E2E tests; fallback to a paste-in box |
 | False negatives give users false confidence | Mandatory review UI, clear limitations, published recall numbers |
 | Legal wording overreach | No compliance claims; document what is covered |
 | Store review delays | Minimal permissions; clear privacy policy |
 
 ## 13. Open questions (decide when reached)
-- Which NER model gives the best accuracy per MB.
+- Which NER model gives the best accuracy per MB. (Decided for now: DistilBERT NER int8, D-020; a multilingual PII model is the next candidate.)
 - Whether to support Firefox/Edge at v1 or after.
 - Whether to add multi-language PII patterns (non-US IDs, phone formats) in v1 or v2.
 

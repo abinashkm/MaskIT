@@ -31,6 +31,18 @@ export class MaskSession {
     return this.tokenToValue.size;
   }
 
+  /**
+   * Independent copy, so a UI can preview masking (and its token numbers) without storing
+   * anything until the user actually uses the result.
+   */
+  clone(): MaskSession {
+    const copy = new MaskSession();
+    for (const [k, v] of this.tokenToValue) copy.tokenToValue.set(k, v);
+    for (const [k, v] of this.keyToToken) copy.keyToToken.set(k, v);
+    for (const [k, v] of this.counters) copy.counters.set(k, v);
+    return copy;
+  }
+
   clear(): void {
     this.tokenToValue.clear();
     this.keyToToken.clear();

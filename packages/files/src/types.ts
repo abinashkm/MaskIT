@@ -1,10 +1,12 @@
-import type { EntityType, MaskLevel, MaskSession, MaskStyle } from "@maskit/core";
+import type { Detector, EntityType, MaskLevel, MaskSession, MaskStyle } from "@maskit/core";
 
 export interface FileMaskOptions {
   level?: MaskLevel;
   entityTypes?: EntityType[];
   customTerms?: string[];
   style?: MaskStyle;
+  /** Optional extra detectors such as the on-device name model. */
+  detectors?: Detector[];
   /** Share with the rest of the app so replies can be restored with the same mapping. */
   session: MaskSession;
 }

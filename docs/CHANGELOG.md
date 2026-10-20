@@ -15,6 +15,75 @@ Every change is recorded here: **what** changed, **where** it lives, and **how i
 
 ---
 
+### 2026-10-20: Store preparation, CI browser job, project rule on commits
+- **What:** Extension icons, a privacy policy, a Chrome Web Store listing draft, a CI job that runs the browser tests and the model-based benchmark, and a standing rule that the assistant never commits.
+- **Where:** `packages/extension/icons/*.png` and `scripts/make-icons.mjs`, `manifest.json` (icons), `docs/PRIVACY_POLICY.md`, `docs/STORE_LISTING.md`, `.github/workflows/ci.yml` (new `e2e` job, `format:check`), root `package.json` (`e2e`, `bench` scripts), `CLAUDE.md`.
+- **How it works:** Icons are drawn by a small script (a page with one blacked-out line) into four PNG sizes and checked by a test. The listing document holds every field the store dashboard asks for, including the permission justifications, and a submit checklist. The new CI job fetches and caches the name model, installs Chromium, runs the model benchmark test and all browser tests. `CLAUDE.md` and memory now say: never commit or push; the owner does.
+- **Why:** Close the remaining pre-publication gaps (D-024) and follow the owner's instruction of 2026-10-20.
+- **Tests:** A test asserts every icon named in the manifest exists and is a real PNG. The CI job is new and has not run yet (nothing is pushed).
+- **Docs updated:** CHANGELOG, MAINTENANCE, STORE_LISTING, PRIVACY_POLICY, README index.
+
+### 2026-10-20: OCR for scanned PDFs and images
+- **What:** The web app can read text from scanned PDFs and image files (PNG, JPG, WebP, BMP, GIF), then mask it.
+- **Where:** `packages/web/src/ocr.ts`, `pdf.ts` (page rendering, `NoSelectableTextError`), `FilePanel.tsx` (OCR option, progress), `scripts/prepare-ocr.mjs`, `vite.config.ts` (unchanged policy: same-origin only), `public/ocr/` (git-ignored, generated).
+- **How it works:** Opt-in checkbox "Read scanned pages and images (OCR, English)". A PDF is read normally first; only when it has no text layer are its pages drawn onto canvases (long side capped at 3000 px) and passed to tesseract.js. Images are drawn onto a canvas, shrunk if huge, on a white background. The OCR worker, the WebAssembly core and the English language data (about 4 MB) are served from the page's own `/ocr/`; `scripts/prepare-ocr.mjs` copies the engine from `node_modules` and downloads the language data once at build time. The recognized text goes through the normal masking and comes out as `.txt` with a warning that OCR can misread characters and that the original image is not carried over.
+- **Why:** Scans and screenshots are a common way for personal data to slip through (D-023).
+- **Tests:** Browser tests draw text onto a canvas, then check: an image is refused until OCR is on; an image with a name, SSN and card is read and masked; a PDF made of nothing but a bitmap is read and masked. A blank PDF without OCR is still refused with the "no selectable text" message.
+- **Not verified:** Phone photos (skewed, shadowed, low light), non-English text, handwriting, and large multi-page scans (speed). Only clean rendered text was tested.
+- **Docs updated:** CHANGELOG, ARCHITECTURE, USER_GUIDE, MAINTENANCE, DECISIONS (D-023), THREAT_MODEL.
+
+### 2026-10-20: XLSX support and a shared Office XML module
+- **What:** Excel workbooks (`.xlsx`) can be masked; the Word code and the Excel code now share one implementation of "mask text that is split across runs".
+- **Where:** `packages/files/src/ooxml.ts` (new, shared), `xlsx.ts` (new), `docx.ts` (now thin), `index.ts`, tests in `packages/files/test/files.test.ts`, one browser test.
+- **How it works:** In Excel, cell text lives in the shared string table (`xl/sharedStrings.xml`) as `<si>` items made of `<t>` runs, or in inline strings (`<is>`). Each item is joined, scanned as one string and written back into the run where each finding starts, exactly as paragraphs are handled in Word. Comments and notes are masked, comment and note authors become "Author", document properties (creator, last modified by, title, subject, description, keywords, company, manager) are blanked, everything else is copied unchanged. Numbers stored as numeric cells, sheet names, formulas and charts are not scanned, and the result says so.
+- **Why:** Spreadsheets are one of the most common carriers of personal data (D-025).
+- **Tests:** Strings split across runs, entities, inline strings, comments, author and property cleanup, numeric cells left alone with a warning, invalid files rejected; all Word tests still pass after the refactor; one browser test downloads a masked workbook.
+- **Not verified:** Real files produced by Excel, Google Sheets or LibreOffice (only hand-built ones).
+- **Docs updated:** CHANGELOG, ARCHITECTURE, USER_GUIDE, MAINTENANCE, DECISIONS (D-025), THREAT_MODEL.
+
+### 2026-10-20: On-device name, organization and place detection (NER)
+- **What:** An optional model finds names, organizations and places in free text, in the web app, in file masking and in the Chrome extension.
+- **Where:**
+  - `packages/core`: new `Detector` type and `analyzeAsync()`; `MaskSession.clone()`.
+  - `packages/ner` (new): `align.ts`, `detector.ts`, `scripts/fetch-model.mjs`.
+  - `packages/files`: `maskFile()` and the handlers became asynchronous and accept `detectors`.
+  - `packages/web`: `ner.worker.ts`, `nerClient.ts`, `useFindings.ts`, `scripts/prepare-model.mjs`, `App.tsx`, `vite.config.ts` (policy now `connect-src 'self'` plus `wasm-unsafe-eval`).
+  - `packages/extension`: `background.ts` (service worker), `offscreen.ts` and `offscreen.html`, `extNer.ts`, `content.ts`, `popup.*`, `settings.ts` (`names`), `manifest.json` (offscreen permission, extension-page policy), `scripts/build.mjs` (bundles model and runtime).
+- **How it works:**
+  1. The model is `onnx-community/distilbert-NER-ONNX` (DistilBERT fine-tuned for English NER, 8-bit, about 66 MB). It returns word pieces without character positions, so `align.ts` finds each piece in the text in order, joins pieces of one entity, maps person/organization/place to the engine's types, drops MISC, and applies generic sanity filters: greeting words, sentence-opening verbs ("Call Elena Gonzalez"), short all-caps abbreviations (state codes), lowercase starts, dotted initials. A hospital-like name tagged as a place becomes an organization.
+  2. Core's `analyzeAsync()` merges detector findings with the rule findings before level, confidence and overlap handling, so the model obeys the same rules as everything else. A detector that errors is skipped.
+  3. **Web app:** the model runs in a Web Worker, loaded from the site's own files; the toggle shows loading, on, or "not available" if the files were left out. Typing is analyzed by rules at once and by rules plus model after a 300 ms pause.
+  4. **Files:** text, DOCX and XLSX paragraphs are checked by the model; in CSV only cells that read like text (two or more words, 8+ characters) are, up to 1500 cells (a warning says when the cap is hit); header hints still cover Name-type columns.
+  5. **Extension:** the model lives in an offscreen page created by the service worker. The content script checks the prompt in the background 400 ms after typing stops and remembers the result for that exact text. If the user sends before the result exists, the send is held ("Checking for names..."), checked (8 s timeout, then rules only), and either the review dialog opens or the send is repeated for the user with a one-shot bypass and a click on the site's send button. Messages are accepted only from the extension's own scripts.
+- **Results** (hand-written realistic set, see BENCHMARKS-NER.md): default level recall 81.3% to 96.9% with precision staying 100%; strict level recall 77.0% to 95.4% with precision 98.8%. These filters were chosen after looking at this set, so treat the numbers as somewhat optimistic.
+- **Bugs found and fixed on the way:** (a) the first request to a brand-new offscreen page failed because the page was not listening yet, which left the option marked unavailable: requests are now retried; (b) with several AI tabs open, turning the option on made every tab ask for the single allowed offscreen page at once and the extras failed: creation is now shared and a failed start is retried; (c) the model tagged "Call" in "Call Elena Gonzalez" as a person: sentence-opening verbs are filtered.
+- **Why:** The largest remaining accuracy gap (D-019, D-020, D-021, D-022).
+- **Tests:** 11 alignment tests without the model; 4 files tests with a fake detector (including a failing one); 3 extension unit tests of the page side; a benchmark test that needs the model (skips without it); browser tests: names masked in the web app with every request recorded (nothing leaves the site), names masked in an uploaded file, and in the extension: name after a pause, a quick send that is held then masked, and a clean prompt that is sent for the user.
+- **Not verified:** Real signed-in chat sites with the option on; memory and speed on low-end machines (the model uses a few hundred MB in the offscreen page); non-English text.
+- **Docs updated:** CHANGELOG, PLAN, ARCHITECTURE, DECISIONS, MAINTENANCE, USER_GUIDE, THREAT_MODEL, INTERVIEW_GUIDE, BENCHMARKS-NER (generated), PRIVACY_POLICY, STORE_LISTING.
+
+### 2026-10-20: Hand-written realistic benchmark; two recognizer fixes it exposed
+- **What:** 32 hand-written messy documents (clinical note, emails, support chat, logs, HR record, contract, lab report, credentials, env file, insurance record, JSON, email header and more) with every sensitive value labeled, scored at the standard and strict levels.
+- **Where:** `packages/bench/src/realistic.ts`, `evaluate.ts` (`runRealistic`, `runRealisticWith`), `report.ts`, `ner-report.ts`, tests; fixes in `packages/core/src/recognizers/identity.ts` and `secrets.ts`.
+- **How it works:** Values are marked inline as `{{TYPE|value}}` and the parser removes the markup and records offsets. Only values a level is meant to mask count at that level. Secrets are assembled from pieces so scanners do not flag the repository.
+- **First result (rules only):** precision 100%, recall about 78% at the default level; most misses were names with no label. It also exposed two real bugs, now fixed with regression tests: `D.O.B.: 1988-05-12` was not read as a date of birth (a word-boundary rule failed after the dot), and a password inside JSON (`"password":"..."`) was missed because the pattern did not allow a quote between the word and the colon. Passwords containing `&` were being cut at the `&`; the cut now applies only inside URL query strings.
+- **Why:** The generated set cannot find problems it was written to avoid (D-018, D-024).
+- **Tests:** Floors in `bench.test.ts` for both levels and for every structured identifier; the generated report is checked for freshness.
+- **Docs updated:** CHANGELOG, BENCHMARKS (generated), MAINTENANCE, USER_GUIDE.
+
+### 2026-10-20: Real-browser end-to-end tests, and the bugs they found
+- **What:** Automated tests that drive real Chromium: the production web app, and the extension loaded unpacked on mock chat pages built on the same editor libraries the sites use. Plus an exploratory run of the extension on the real, logged-out Gemini and ChatGPT pages.
+- **Where:** `packages/e2e` (`playwright.config.ts`, `tests/web.spec.ts`, `tests/extension.spec.ts`, `tests/mock-editors.ts`, `tests/fixtures.ts`); fixes in `packages/web/src/App.tsx`, `packages/core/src/masker.ts`, `packages/extension/src/editor.ts` and `adapters.ts`.
+- **How it works:** The web tests serve the production build, upload generated files (CSV, DOCX, XLSX, text PDF, blank PDF, images) and read the downloads. The extension tests copy the build, give it a fixed key so its id is known, launch Chromium with it, and answer requests for `claude.ai`, `chatgpt.com` and `gemini.google.com` with local pages containing real ProseMirror (Claude and ChatGPT) and Quill (Gemini) editors, plus the plain-textarea layout ChatGPT shows logged out. The dialog lives in a closed shadow root, so tests drive it by keyboard (the "Mask selected" button has focus when it opens). Every request is recorded and the tests assert none leaves the site.
+- **Bugs found and fixed:**
+  1. The web preview created tokens in the shared session on every render, so numbering drifted (`[EMAIL_2]` where `[EMAIL_1]` was expected) and half-typed values were saved. The preview now runs on a clone of the session and saves only when the user copies the result, copies the output text, or masks a file.
+  2. After masking a plain `<textarea>` composer the box lost focus, so the next Enter went nowhere. `writeText` now refocuses and puts the cursor at the end.
+  3. On the real logged-out ChatGPT page the composer is `textarea#mobile-composer-prompt` and the send button is labeled "Send message"; neither was in the adapter, so ChatGPT would not have been protected there. Added.
+- **Real-site spot check (logged out):** Gemini's selectors matched and the extension masked a test email in the real Quill editor; ChatGPT matched after the fix and masked it; Claude returned a Cloudflare challenge to the automated browser and could not be checked. Signed-in layouts were not checked.
+- **Why:** Unit tests with mock DOM could not show the things that actually break (D-024).
+- **Tests:** 47 browser tests: 17 web (text, level, review, restore, CSP, CSV, DOCX, XLSX, text and blank PDF, unsupported file, no outside requests, name model x2, OCR x3) and 30 extension (3 editor layouts x 6 flows, textarea layout x 6, restore, custom words, no outside requests, name model x3).
+- **Docs updated:** CHANGELOG, MAINTENANCE, ARCHITECTURE, INTERVIEW_GUIDE, DECISIONS (D-024).
+
 ### 2026-10-19: Accuracy benchmark, and six recognizer fixes it exposed (start of Phase 4)
 - **What:** A reproducible benchmark that scores every entity type for precision and recall, measures false positives on ordinary text, and lists known gaps. Its first run found real bugs, which are fixed.
 - **Where:**

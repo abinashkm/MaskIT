@@ -19,9 +19,15 @@ export const ADAPTERS: Adapter[] = [
     inputSelectors: [
       "#prompt-textarea",
       'div.ProseMirror[contenteditable="true"]',
+      "textarea#mobile-composer-prompt", // seen on the logged-out page, Oct 2026
+      'textarea[aria-label="Chat with ChatGPT"]',
       'textarea[data-id="root"]',
     ],
-    sendSelectors: ['button[data-testid="send-button"]', 'button[aria-label="Send prompt"]'],
+    sendSelectors: [
+      'button[data-testid="send-button"]',
+      'button[aria-label="Send prompt"]',
+      'button[aria-label="Send message"]', // seen on the logged-out page, Oct 2026
+    ],
   },
   {
     id: "claude",

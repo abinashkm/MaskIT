@@ -6,7 +6,10 @@
     "types": ["chrome", "node"],
     "resolveJsonModule": true,
     "baseUrl": ".",
-    "paths": { "@maskit/core": ["../core/src/index.ts"] }
+    "paths": {
+      "@maskit/core": ["../core/src/index.ts"],
+      "@maskit/ner/align": ["../ner/src/align.ts"]
+    }
   },
   "include": ["src", "test", "scripts"]
 }

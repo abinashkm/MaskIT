@@ -6,9 +6,16 @@ export interface Settings {
   enabled: boolean;
   level: ExtensionLevel;
   customTerms: string[];
+  /** Also look for names, organizations and places with the bundled on-device model. */
+  names: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = { enabled: true, level: "standard", customTerms: [] };
+export const DEFAULT_SETTINGS: Settings = {
+  enabled: true,
+  level: "standard",
+  customTerms: [],
+  names: false,
+};
 
 const LEVELS: ExtensionLevel[] = ["basic", "standard", "strict"];
 const STORAGE_KEY = "maskit.settings";
@@ -24,6 +31,7 @@ export function normalizeSettings(raw: unknown): Settings {
     customTerms: Array.isArray(r.customTerms)
       ? r.customTerms.filter((t): t is string => typeof t === "string" && t.trim() !== "")
       : [],
+    names: typeof r.names === "boolean" ? r.names : DEFAULT_SETTINGS.names,
   };
 }
 

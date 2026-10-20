@@ -28,11 +28,17 @@ async function init(): Promise<void> {
   const enabled = $<HTMLInputElement>("enabled");
   const level = $<HTMLSelectElement>("level");
   const terms = $<HTMLInputElement>("terms");
+  const names = $<HTMLInputElement>("names");
   enabled.checked = settings.enabled;
   level.value = settings.level;
   terms.value = settings.customTerms.join(", ");
+  names.checked = settings.names;
 
   enabled.onchange = () => void saveSettings({ enabled: enabled.checked });
+  names.onchange = () => {
+    void saveSettings({ names: names.checked });
+    void showNamesStatus();
+  };
   level.onchange = () => void saveSettings({ level: level.value as ExtensionLevel });
   terms.onchange = () =>
     void saveSettings({
@@ -41,6 +47,35 @@ async function init(): Promise<void> {
         .map((t) => t.trim())
         .filter(Boolean),
     });
+
+  const namesStatus = $("names-status");
+  async function showNamesStatus() {
+    if (!names.checked) {
+      namesStatus.textContent =
+        "Optional: uses a model bundled with the extension, on this device.";
+      return;
+    }
+    namesStatus.textContent = "Loading the model...";
+    // Give the page a moment to react to the changed setting, then ask what it found.
+    await new Promise((r) => setTimeout(r, 600));
+    for (let i = 0; i < 40; i++) {
+      const info = await ask({ type: "maskit:names-status" });
+      if (info && info.ok && "names" in info && info.names !== "off") {
+        namesStatus.textContent =
+          info.names === "ready"
+            ? "On. Names are checked on this device."
+            : "Not available in this build (the model was left out). Pattern rules still work.";
+        return;
+      }
+      if (!info) {
+        namesStatus.textContent = "Open a supported AI site to use this.";
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    namesStatus.textContent = "Still loading...";
+  }
+  void showNamesStatus();
 
   const status = $("status");
   const info = await ask({ type: "maskit:status" });

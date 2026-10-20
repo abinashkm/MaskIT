@@ -1,6 +1,6 @@
 # Threat Model
 
-> Status: initial design-time model. Review each quarter and after any architectural change.
+> Status: reviewed against the implemented system on 2026-10-20 (rows T1 to T26 describe real mitigations unless marked planned). Review each quarter and after any architectural change.
 
 ## Assets
 1. The user's original sensitive text and files.
@@ -35,6 +35,13 @@
 | T16 | "Send without masking" left active and a later prompt slips through | The permission is one-shot and expires after 10 seconds |
 | T18 | Original text survives inside a masked Word file (tracked deletions, comments, headers, document properties, reviewer names) | The DOCX handler masks all text parts including deleted text, anonymizes comment authors and blanks document properties; images are called out as not scanned |
 | T19 | Malformed or oversized file freezes or exhausts the tab | 25 MB input limit, 100 MB limit on unzipped DOCX contents, invalid files rejected with a message. Processing still runs on the main thread (moving it to a worker is **(planned)**) |
+| T20 | The model or its runtime is swapped for a malicious or leaking one (supply chain) | Pinned dependency versions and lockfile; the model is downloaded once by a script from a named repository, licence checked, then packaged; extension pages and the web app may read only their own files, so even a tampered model has no route to send data out; privacy tests and browser request recording would show any attempt |
+| T21 | Another extension or page message reaches the name model or the service worker | Handlers accept only messages whose sender is this extension; the worker answers only the two model message types |
+| T22 | The model and OCR engine use WebAssembly, which needs a relaxed policy | Only `wasm-unsafe-eval` is added; plain `unsafe-eval`, remote scripts and wildcards are forbidden and asserted by tests |
+| T23 | Many tabs race to start the offscreen page and the option silently turns off | Creation is shared across tabs and failures are retried; covered by a browser test |
+| T24 | Held sends are repeated incorrectly or sent twice | The repeat uses a one-shot bypass that expires after 10 seconds and consumes itself on first use |
+| T25 | Hidden text survives in a masked Excel file (comments, authors, properties) | Same handling as Word; numeric cells, sheet names and formulas are stated as not scanned |
+| T26 | OCR output is wrong, so a value is not recognized | Warning on every OCR result; review is always required; accuracy on messy scans is unmeasured |
 | T17 | Look-alike domain activates the extension | Hosts are matched exactly (or as real subdomains); manifest lists only four hosts |
 
 ## Out of scope
